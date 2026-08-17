@@ -1,0 +1,18 @@
+# Streamlit 主题配置：GitHub-AI-Studio 设计系统
+# 「本地开发者指挥台」：深空蓝黑 + 紫青渐变 + 终端风控制台
+[theme]
+base = "dark"
+primaryColor = "#8B7CFF"
+backgroundColor = "#070B12"
+secondaryBackgroundColor = "#101726"
+textColor = "#E8ECF5"
+font = "sans serif"
+
+[browser]
+gatherUsageStats = false
+
+[global]
+developmentMode = false
+
+[server]
+headless = true
