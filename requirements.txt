@@ -1,0 +1,37 @@
+# ============================================================
+# GitHub-AI-Studio 依赖清单（Python 3.10+）
+# 安装：pip install -r requirements.txt
+# 版本已锁定（2026-08 于本机验证），升级请逐个评估后修改。
+# ============================================================
+
+# 桌面窗口（pywebview 内嵌 Streamlit 界面，主入口 desktop_app.py）
+streamlit==1.60.0
+pywebview==6.2.1
+
+# OpenAI API（结构化 JSON 输出）
+openai==2.52.0
+
+# 本地 Git 操作
+GitPython==3.1.57
+
+# GitHub REST API
+PyGithub==2.9.1
+
+# HTTP 请求（热榜抓取 / 手机推送 / Notion API）
+requests==2.34.2
+
+# .env 配置读取与写入
+python-dotenv==1.2.2
+
+# GitHub Trending 页面解析
+beautifulsoup4==4.15.0
+
+# 系统托盘常驻服务（tray.py）
+pystray==0.19.5
+pillow==12.3.0
+
+# 桌面通知（托盘任务完成后弹窗）
+plyer==2.1.0
+
+# 每日定时调度（APScheduler：界面修改时间后实时 reschedule）
+APScheduler==3.11.3

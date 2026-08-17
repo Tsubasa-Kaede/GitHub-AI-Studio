@@ -1,0 +1,88 @@
+# =====================================================================
+# GitHub-AI-Studio · AI PR 自动代码审查工作流
+# ---------------------------------------------------------------------
+# 触发：PR opened / synchronize / reopened
+# 行为：检出完整历史 → 提取 diff → cli.py --review-pr 调用 OpenAI
+#       生成审查报告 → 发布/更新到 PR 评论区（同一 PR 不会刷屏）
+#
+# 使用前在仓库 Secrets 配置 OPENAI_API_KEY（必需）；
+# 评论回复使用 GITHUB_TOKEN，permissions 已按最小权限声明
+# （官方文档：https://docs.github.com/actions/security-for-github-actions/security-guides/automatic-token-authentication）
+# =====================================================================
+
+name: 🤖 AI PR Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: ai-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  ai-code-review:
+    runs-on: ubuntu-latest
+    if: ${{ secrets.OPENAI_API_KEY != '' }}
+    steps:
+      - name: 检出代码（完整历史）
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 安装 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: 安装依赖
+        run: pip install -r requirements.txt
+
+      - name: 提取 PR Diff
+        id: diff
+        shell: bash
+        run: |
+          BASE="${{ github.event.pull_request.base.sha }}"
+          HEAD="${{ github.event.pull_request.head.sha }}"
+          mkdir -p /tmp/ai-review
+          git diff "$BASE...$HEAD" \
+            -- . \
+            ':!**/package-lock.json' \
+            ':!**/poetry.lock' \
+            ':!**/requirements.lock' \
+            > /tmp/ai-review/pr.diff || true
+          if [ ! -s /tmp/ai-review/pr.diff ]; then
+            echo "diff_empty=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "diff_empty=false" >> "$GITHUB_OUTPUT"
+            git diff --shortstat "$BASE...$HEAD"
+          fi
+
+      - name: 🤖 AI 代码审查并回复 PR
+        if: steps.diff.outputs.diff_empty == 'false'
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python cli.py --review-pr \
+            --repo "${{ github.event.repository.full_name }}" \
+            --pr-number ${{ github.event.pull_request.number }} \
+            --diff-file /tmp/ai-review/pr.diff
+
+      - name: 提示无代码变更
+        if: steps.diff.outputs.diff_empty == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '🤖 本次 PR 没有代码变更，已跳过 AI 审查。'
+            });
