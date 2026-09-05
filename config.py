@@ -19,7 +19,7 @@ import re
 import shutil
 import subprocess
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -112,17 +112,23 @@ def _env(name: str, default: str = "") -> str:
     return value.strip() if isinstance(value, str) else default
 
 
-def _env_int(name: str, default: int) -> int:
+def _env_int(name: str, default: int, problems: Optional[List[str]] = None) -> int:
+    """读取整数环境变量；problems 提供时容错回退默认值，否则抛 ConfigError。"""
     raw = _env(name)
     if not raw:
         return default
     try:
         return int(raw)
     except ValueError as exc:
-        raise ConfigError(f"环境变量 {name} 必须是整数，当前值: {raw!r}") from exc
+        message = f"环境变量 {name} 必须是整数，当前值: {raw!r}（已回退为默认值 {default}）"
+        if problems is None:
+            raise ConfigError(message) from exc
+        problems.append(message)
+        return default
 
 
-def _env_bool(name: str, default: bool) -> bool:
+def _env_bool(name: str, default: bool, problems: Optional[List[str]] = None) -> bool:
+    """读取布尔环境变量；problems 提供时容错回退默认值，否则抛 ConfigError。"""
     raw = _env(name).lower()
     if not raw:
         return default
@@ -130,7 +136,11 @@ def _env_bool(name: str, default: bool) -> bool:
         return True
     if raw in {"0", "false", "no", "off"}:
         return False
-    raise ConfigError(f"环境变量 {name} 必须是布尔值（true/false），当前值: {raw!r}")
+    message = f"环境变量 {name} 必须是布尔值（true/false），当前值: {raw!r}（已回退为默认值 {default}）"
+    if problems is None:
+        raise ConfigError(message)
+    problems.append(message)
+    return default
 
 
 def _parse_interests(raw: str, default: List[str]) -> List[str]:
@@ -230,17 +240,35 @@ class Settings:
     ai_fallback_enabled: bool
     auto_push_enabled: bool
     auto_push_time: str
+    # 加载时发现的非法配置项（已回退默认值），由 validate_config 统一汇报
+    config_warnings: List[str] = field(default_factory=list)
 
 
 def load_settings() -> Settings:
-    """从环境变量构建配置对象（自动融合 gh CLI 凭证）。"""
-    visibility = _env("DEFAULT_REPO_VISIBILITY", "private").strip().lower()
-    if visibility not in {"public", "private"}:
-        raise ConfigError(f"DEFAULT_REPO_VISIBILITY 只能是 public/private，当前值: {visibility!r}")
+    """从环境变量构建配置对象（自动融合 gh CLI 凭证）。
 
-    since = _env("TRENDING_SINCE", "daily").strip().lower()
-    if since not in {"daily", "weekly", "monthly"}:
-        raise ConfigError(f"TRENDING_SINCE 只能是 daily/weekly/monthly，当前值: {since!r}")
+    非法值不抛异常：回退默认值并记录到 config_warnings，
+    保证 .env 写错一项不至于让应用在导入期直接崩溃。
+    """
+    problems: List[str] = []
+
+    visibility_raw = _env("DEFAULT_REPO_VISIBILITY", "private").strip().lower()
+    if visibility_raw in {"public", "private"}:
+        visibility = visibility_raw
+    else:
+        visibility = "private"
+        problems.append(
+            f"DEFAULT_REPO_VISIBILITY 只能是 public/private，当前值: {visibility_raw!r}（已回退 private）"
+        )
+
+    since_raw = _env("TRENDING_SINCE", "daily").strip().lower()
+    if since_raw in {"daily", "weekly", "monthly"}:
+        since = since_raw
+    else:
+        since = "daily"
+        problems.append(
+            f"TRENDING_SINCE 只能是 daily/weekly/monthly，当前值: {since_raw!r}（已回退 daily）"
+        )
 
     # GitHub 凭证三级自动侦测：① .env / 环境变量 → ② gh auth token → ③ hosts.yml
     token = _env("GITHUB_TOKEN")
@@ -266,10 +294,10 @@ def load_settings() -> Settings:
         ),
         default_repo_visibility=visibility,
         default_branch=_env("DEFAULT_BRANCH", "main"),
-        request_timeout=_env_int("REQUEST_TIMEOUT", 30),
+        request_timeout=_env_int("REQUEST_TIMEOUT", 30, problems),
         trending_since=since,
-        trending_fetch_limit=_env_int("TRENDING_FETCH_LIMIT", 25),
-        trending_top_n=_env_int("TRENDING_TOP_N", 3),
+        trending_fetch_limit=_env_int("TRENDING_FETCH_LIMIT", 25, problems),
+        trending_top_n=_env_int("TRENDING_TOP_N", 3, problems),
         ntfy_server=_env("NTFY_SERVER", "https://ntfy.sh"),
         ntfy_topic=_env("NTFY_TOPIC"),
         ntfy_token=_env("NTFY_TOKEN"),
@@ -280,15 +308,16 @@ def load_settings() -> Settings:
         dingtalk_secret=_env("DINGTALK_SECRET"),
         wechat_webhook=_env("WECHAT_WEBHOOK"),
         email_smtp_host=_env("EMAIL_SMTP_HOST"),
-        email_smtp_port=_env_int("EMAIL_SMTP_PORT", 465),
+        email_smtp_port=_env_int("EMAIL_SMTP_PORT", 465, problems),
         email_user=_env("EMAIL_USER"),
         email_password=_env("EMAIL_PASSWORD"),
         email_to=_env("EMAIL_TO"),
         notion_token=_env("NOTION_TOKEN"),
         notion_database_id=_env("NOTION_DATABASE_ID"),
-        ai_fallback_enabled=_env_bool("AI_FALLBACK_ENABLED", True),
-        auto_push_enabled=_env_bool("AUTO_PUSH_ENABLED", True),
+        ai_fallback_enabled=_env_bool("AI_FALLBACK_ENABLED", True, problems),
+        auto_push_enabled=_env_bool("AUTO_PUSH_ENABLED", True, problems),
         auto_push_time=_env("AUTO_PUSH_TIME", "08:30"),
+        config_warnings=problems,
     )
 
 
@@ -344,6 +373,8 @@ def require_openai_api_key() -> str:
 def validate_config(verbose: bool = True) -> List[str]:
     """全量检查配置，返回问题列表（不抛出异常）。"""
     issues: List[str] = []
+    # 加载期已回退默认值的非法配置项（如 REQUEST_TIMEOUT=abc）
+    issues.extend(settings.config_warnings)
     if not settings.github_token:
         issues.append("GITHUB_TOKEN 未配置（且 gh CLI 未登录）")
     elif settings.github_token_source == "gh-cli":

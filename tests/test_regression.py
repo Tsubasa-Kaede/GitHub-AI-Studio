@@ -98,6 +98,63 @@ class ReleaseVersionKeyMixedTagsTest(unittest.TestCase):
         self.assertEqual(_version_key("release-2"), (2,))
 
 
+DOTENV_AVAILABLE = importlib.util.find_spec("dotenv") is not None
+
+
+@unittest.skipUnless(DOTENV_AVAILABLE, "需要 python-dotenv（项目完整环境）")
+class ConfigToleranceTest(unittest.TestCase):
+    """Required：非法 .env 值应回退默认值并记录警告，而不是导入期崩溃。"""
+
+    def test_bad_int_env_falls_back_with_warning(self) -> None:
+        import os
+        from unittest import mock
+
+        from config import load_settings
+
+        env = {"REQUEST_TIMEOUT": "abc", "TRENDING_TOP_N": "3.5", "EMAIL_SMTP_PORT": "not-a-port"}
+        with mock.patch.dict(os.environ, env):
+            settings = load_settings()
+        self.assertEqual(settings.request_timeout, 30)
+        self.assertEqual(settings.trending_top_n, 3)
+        self.assertEqual(settings.email_smtp_port, 465)
+        warnings_text = "\n".join(settings.config_warnings)
+        self.assertIn("REQUEST_TIMEOUT", warnings_text)
+        self.assertIn("TRENDING_TOP_N", warnings_text)
+        self.assertIn("EMAIL_SMTP_PORT", warnings_text)
+
+    def test_bad_enum_env_falls_back_with_warning(self) -> None:
+        import os
+        from unittest import mock
+
+        from config import load_settings
+
+        env = {"DEFAULT_REPO_VISIBILITY": "internal", "TRENDING_SINCE": "hourly"}
+        with mock.patch.dict(os.environ, env):
+            settings = load_settings()
+        self.assertEqual(settings.default_repo_visibility, "private")
+        self.assertEqual(settings.trending_since, "daily")
+        self.assertEqual(len(settings.config_warnings), 2)
+
+    def test_valid_env_records_no_warnings(self) -> None:
+        import os
+        from unittest import mock
+
+        from config import load_settings
+
+        env = {
+            "DEFAULT_REPO_VISIBILITY": "public",
+            "TRENDING_SINCE": "weekly",
+            "REQUEST_TIMEOUT": "45",
+            "TRENDING_TOP_N": "5",
+            "AI_FALLBACK_ENABLED": "false",
+        }
+        with mock.patch.dict(os.environ, env):
+            settings = load_settings()
+        self.assertEqual(settings.request_timeout, 45)
+        self.assertTrue(settings.ai_fallback_enabled is False)
+        self.assertEqual(settings.config_warnings, [])
+
+
 class EnvFileGuardTest(unittest.TestCase):
     """Required：提交前拦截未忽略的环境变量文件（纯命名过滤逻辑）。"""
 
