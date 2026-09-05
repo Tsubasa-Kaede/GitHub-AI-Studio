@@ -24,6 +24,10 @@ GITPYTHON_AVAILABLE = importlib.util.find_spec("git") is not None
 FULL_DEPS_AVAILABLE = all(
     importlib.util.find_spec(name) is not None for name in ("git", "github", "dotenv")
 )
+AI_DEPS_AVAILABLE = all(
+    importlib.util.find_spec(name) is not None for name in ("openai", "dotenv")
+)
+DOTENV_AVAILABLE = importlib.util.find_spec("dotenv") is not None
 
 
 class ReleaseTabRegressionTest(unittest.TestCase):
@@ -39,12 +43,6 @@ class ReleaseTabRegressionTest(unittest.TestCase):
         """源码级回归护栏：tab_release 若再次出现 tag_name 会直接崩溃。"""
         source = (PROJECT_ROOT / "ui" / "tab_release.py").read_text(encoding="utf-8")
         self.assertNotIn("info.tag_name", source)
-
-
-GITPYTHON_AVAILABLE = importlib.util.find_spec("git") is not None
-FULL_DEPS_AVAILABLE = all(
-    importlib.util.find_spec(name) is not None for name in ("git", "github", "dotenv")
-)
 
 
 @unittest.skipUnless(FULL_DEPS_AVAILABLE, "需要 GitPython / PyGithub / python-dotenv（项目完整环境）")
@@ -96,9 +94,6 @@ class ReleaseVersionKeyMixedTagsTest(unittest.TestCase):
 
         self.assertEqual(_version_key("v1.10.0"), (1, 10, 0))
         self.assertEqual(_version_key("release-2"), (2,))
-
-
-DOTENV_AVAILABLE = importlib.util.find_spec("dotenv") is not None
 
 
 @unittest.skipUnless(DOTENV_AVAILABLE, "需要 python-dotenv（项目完整环境）")
@@ -153,6 +148,103 @@ class ConfigToleranceTest(unittest.TestCase):
         self.assertEqual(settings.request_timeout, 45)
         self.assertTrue(settings.ai_fallback_enabled is False)
         self.assertEqual(settings.config_warnings, [])
+
+
+@unittest.skipUnless(AI_DEPS_AVAILABLE, "需要 openai / python-dotenv（项目完整环境）")
+class AIModelRoutingTest(unittest.TestCase):
+    """方案 B：COMMIT/TRENDING 场景模型覆盖 + OPENAI_FALLBACK_MODEL 降级链。"""
+
+    def _make_engine(self):
+        from core.ai_engine import AIEngine
+
+        # 占位 key 仅判真、不发请求；短字面量避免命中密钥扫描规则
+        return AIEngine(api_key="test", model="primary-model")
+
+    def test_task_model_override(self) -> None:
+        from unittest import mock
+
+        from config import settings
+
+        engine = self._make_engine()
+        with mock.patch.object(settings, "commit_model", "fast-commit"), \
+                mock.patch.object(settings, "trending_model", ""):
+            self.assertEqual(engine._resolve_model("commit"), "fast-commit")
+            self.assertEqual(engine._resolve_model("trending"), "primary-model")
+            self.assertEqual(engine._resolve_model(None), "primary-model")
+
+    def test_model_chain_parses_and_dedupes(self) -> None:
+        from unittest import mock
+
+        from config import settings
+
+        engine = self._make_engine()
+        with mock.patch.object(settings, "openai_fallback_model", " backup-a, ，backup-b ;;backup-a "):
+            self.assertEqual(engine._model_chain(None), ["primary-model", "backup-a", "backup-b"])
+        with mock.patch.object(settings, "openai_fallback_model", ""):
+            self.assertEqual(engine._model_chain("commit"), ["primary-model"])
+
+    @staticmethod
+    def _openai_error(exc_cls, status: int):
+        import httpx
+
+        request = httpx.Request("POST", "https://api.openai.com/v1/chat/completions")
+        return exc_cls("api error", response=httpx.Response(status, request=request), body=None)
+
+    def test_fallback_switches_on_rate_limit(self) -> None:
+        from unittest import mock
+
+        from config import settings
+        from openai import RateLimitError
+
+        engine = self._make_engine()
+        calls = []
+
+        def fake_create(**kwargs):
+            calls.append(kwargs["model"])
+            if len(calls) == 1:
+                raise self._openai_error(RateLimitError, 429)
+            return mock.Mock(choices=[mock.Mock(message=mock.Mock(content="hello"))])
+
+        client = mock.Mock()
+        client.chat.completions.create.side_effect = fake_create
+        with mock.patch.object(settings, "openai_fallback_model", "backup-model"), \
+                mock.patch.object(engine, "_get_client", return_value=client):
+            self.assertEqual(engine._chat("sys", "usr"), "hello")
+        self.assertEqual(calls, ["primary-model", "backup-model"])
+
+    def test_auth_error_does_not_switch(self) -> None:
+        from unittest import mock
+
+        from config import settings
+        from openai import AuthenticationError
+
+        from core.ai_engine import AIEngineError
+
+        engine = self._make_engine()
+        client = mock.Mock()
+        client.chat.completions.create.side_effect = self._openai_error(AuthenticationError, 401)
+        with mock.patch.object(settings, "openai_fallback_model", "backup-model"), \
+                mock.patch.object(engine, "_get_client", return_value=client):
+            with self.assertRaises(AIEngineError):
+                engine._chat("sys", "usr")
+        self.assertEqual(client.chat.completions.create.call_count, 1)
+
+    def test_raises_after_chain_exhausted(self) -> None:
+        from unittest import mock
+
+        from config import settings
+        from openai import RateLimitError
+
+        from core.ai_engine import AIEngineError
+
+        engine = self._make_engine()
+        client = mock.Mock()
+        client.chat.completions.create.side_effect = self._openai_error(RateLimitError, 429)
+        with mock.patch.object(settings, "openai_fallback_model", "backup-a, backup-b"), \
+                mock.patch.object(engine, "_get_client", return_value=client):
+            with self.assertRaises(AIEngineError):
+                engine._chat("sys", "usr")
+        self.assertEqual(client.chat.completions.create.call_count, 3)
 
 
 class EnvFileGuardTest(unittest.TestCase):
