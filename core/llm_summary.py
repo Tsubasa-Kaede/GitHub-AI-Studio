@@ -40,16 +40,17 @@ COMPACT_SUMMARY_SYSTEM_PROMPT = (
 
 
 def _truncate_text(text: str, limit: int) -> str:
-    """按字符截断，优先在标点处断句。"""
+    """按字符截断，优先在标点处断句；硬切时补省略号避免句中断裂。"""
     text = (text or "").strip()
     if len(text) <= limit:
         return text
     cut = text[:limit]
     for sep in ("。", "；", "，", ". ", "; ", ", "):
         idx = cut.rfind(sep)
-        if idx > 0:
+        # 标点截断要保留足够内容（≥60%），否则与硬切无异，不如直接省略
+        if idx >= limit * 0.6:
             return cut[: idx + len(sep)].strip()
-    return cut.strip()
+    return re.sub(r"[，,；;、：:·\s]+$", "", cut) + "…"
 
 
 def apply_compact_rules(data: dict) -> dict:
