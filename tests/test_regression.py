@@ -247,6 +247,69 @@ class AIModelRoutingTest(unittest.TestCase):
         self.assertEqual(client.chat.completions.create.call_count, 3)
 
 
+class I18nParityTest(unittest.TestCase):
+    """Required：中英文案键完全对齐，代码引用的键必须存在。"""
+
+    def test_zh_en_key_parity(self) -> None:
+        from core.i18n import TRANSLATIONS
+
+        self.assertEqual(set(TRANSLATIONS["zh_CN"]), set(TRANSLATIONS["en_US"]))
+
+    def test_referenced_keys_exist(self) -> None:
+        import re
+
+        from core.i18n import TRANSLATIONS
+
+        ui_dir = PROJECT_ROOT / "ui"
+        used = set()
+        for path in list(ui_dir.rglob("*.py")) + [PROJECT_ROOT / "app.py"]:
+            source = path.read_text(encoding="utf-8")
+            used |= set(re.findall(r"tr\(\s*['\"]([\w.]+)['\"]", source))
+        missing = sorted(k for k in used if k not in TRANSLATIONS["zh_CN"])
+        self.assertEqual(missing, [], f"代码引用了不存在的文案键: {missing}")
+
+    def test_trending_restore_entry_exists(self) -> None:
+        """源码级回归护栏：Master-Detail 必须保留「移回新榜」入口。"""
+        source = (PROJECT_ROOT / "ui" / "tab_trending.py").read_text(encoding="utf-8")
+        self.assertIn('_set_status(repo.name, "new")', source)
+        self.assertIn('tr("trending.restore")', source)
+
+
+@unittest.skipUnless(AI_DEPS_AVAILABLE, "需要 openai / python-dotenv（项目完整环境）")
+class TruncateTextTest(unittest.TestCase):
+    """Required：截断硬切补省略号，不得在词中间无声断裂。"""
+
+    def test_hard_cut_appends_ellipsis(self) -> None:
+        from core.llm_summary import _truncate_text
+
+        text = "确定推理引擎：支持前向链、Rete、Datalog 和 Spark 等多种推理方式"
+        result = _truncate_text(text, 30)
+        self.assertTrue(result.endswith("…"))
+        self.assertLessEqual(len(result), 31)
+
+    def test_short_text_unchanged(self) -> None:
+        from core.llm_summary import _truncate_text
+
+        self.assertEqual(_truncate_text("短文本", 30), "短文本")
+
+    def test_punctuation_cut_preferred(self) -> None:
+        from core.llm_summary import _truncate_text
+
+        # 句号位于截断窗口 60% 之后：应在该句号处断句
+        text = "前面是一段足够长的内容用于超过截断阈值的位置。后面还有更多内容"
+        result = _truncate_text(text, 30)
+        self.assertTrue(result.endswith("。"))
+        self.assertFalse(result.endswith("…"))
+
+    def test_early_punctuation_hard_cuts(self) -> None:
+        from core.llm_summary import _truncate_text
+
+        # 句号过早（<60%）：保留它会丢失过多内容，应硬切并补省略号
+        text = "短。后面是很长的补充内容一直延伸到超过三十个字符限制位置为止哦"
+        result = _truncate_text(text, 30)
+        self.assertTrue(result.endswith("…"))
+
+
 class EnvFileGuardTest(unittest.TestCase):
     """Required：提交前拦截未忽略的环境变量文件（纯命名过滤逻辑）。"""
 

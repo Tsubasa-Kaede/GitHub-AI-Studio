@@ -269,14 +269,26 @@ def _render_detail(repo: TrendingRepo | None) -> None:
             """,
             unsafe_allow_html=True,
         )
+        # 操作按钮随卡片状态变化：新榜可存入待学；待学/已归档可移回新榜
+        current_status = (
+            st.session_state.get("trending_board", {})
+            .get(repo.name, {})
+            .get("status", "new")
+        )
         b1, b2, b3 = st.columns([1, 1, 1])
         with b1:
             st.link_button("打开 GitHub", repo.url, key=f"detail_open_{repo.name}")
         with b2:
-            if st.button(tr("trending.plan"), use_container_width=True, key=f"detail_plan_{repo.name}"):
-                _set_status(repo.name, "planned")
+            if current_status == "new":
+                if st.button(tr("trending.plan"), use_container_width=True, key=f"detail_plan_{repo.name}"):
+                    _set_status(repo.name, "planned")
+            else:
+                if st.button(tr("trending.restore"), use_container_width=True, key=f"detail_restore_{repo.name}"):
+                    _set_status(repo.name, "new")
         with b3:
-            if st.button(tr("trending.archive"), use_container_width=True, key=f"detail_arch_{repo.name}"):
+            if current_status == "archived":
+                st.caption(tr("trending.archived_col"))
+            elif st.button(tr("trending.archive"), use_container_width=True, key=f"detail_arch_{repo.name}"):
                 _archive_to_notion(repo)
 
 
