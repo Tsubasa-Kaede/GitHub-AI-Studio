@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Callable, Optional, Sequence
 
 from config import settings
-from core.ai_engine import AIEngine
+from core.ai_engine import AIEngine, AIEngineError
 from core.git_engine import (
     GitEngineError,
     add_remote,
