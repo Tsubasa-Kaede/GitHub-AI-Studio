@@ -54,7 +54,9 @@ class AIEngine:
         self.model = model or settings.openai_model
         self.base_url = base_url if base_url is not None else settings.openai_base_url or None
         self._enabled_override = enabled
-        self._client: Optional[OpenAI] = None
+        # 构造时即初始化客户端：enrich_repo_study 会多线程共享同一实例，
+        # 惰性初始化在这里存在竞态（OpenAI 客户端构造不触网，提前做无成本）
+        self._client: Optional[OpenAI] = self._build_client() if self.enabled else None
 
     @property
     def enabled(self) -> bool:
@@ -64,14 +66,17 @@ class AIEngine:
         return bool(self.api_key)
 
     # ------------------------------------------------------------------
+    def _build_client(self) -> OpenAI:
+        kwargs: Dict[str, Any] = {"api_key": self.api_key, "timeout": settings.request_timeout}
+        if self.base_url:
+            kwargs["base_url"] = self.base_url
+        return OpenAI(**kwargs)
+
     def _get_client(self) -> OpenAI:
         if not self.enabled:
             raise AIEngineError("未配置 OPENAI_API_KEY，AI 功能不可用（可降级为本地规则）。")
         if self._client is None:
-            kwargs: Dict[str, Any] = {"api_key": self.api_key, "timeout": settings.request_timeout}
-            if self.base_url:
-                kwargs["base_url"] = self.base_url
-            self._client = OpenAI(**kwargs)
+            self._client = self._build_client()
         return self._client
 
     def _chat(self, system: str, user: str, *, temperature: float = 0.3, max_tokens: int = 2000) -> str:
