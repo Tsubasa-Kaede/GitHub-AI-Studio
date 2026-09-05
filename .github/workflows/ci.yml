@@ -1,0 +1,41 @@
+# -*- coding: utf-8 -*-
+# GitHub-AI-Studio 持续集成：静态检查 + 单元测试（Python 3.12 / 3.13 矩阵）
+# 推送到 GitHub 后自动生效；本地等价命令：
+#   python -m ruff check --select "E,F,W,B" --ignore "E501,F401,E402,B009" services/ core/ ui/ tests/ app.py cli.py config.py models.py desktop_app.py tray.py build_exe.py
+#   python -m unittest discover -s tests -t . -v
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安装 Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install ruff==0.16.6
+
+      - name: 静态检查（ruff）
+        run: >
+          python -m ruff check --select "E,F,W,B" --ignore "E501,F401,E402,B009"
+          services/ core/ ui/ tests/ app.py cli.py config.py models.py desktop_app.py tray.py build_exe.py
+
+      - name: 单元测试（unittest）
+        run: python -m unittest discover -s tests -t . -v
