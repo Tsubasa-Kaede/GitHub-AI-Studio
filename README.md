@@ -131,6 +131,8 @@ python build_exe.py
 | --- | --- | --- |
 | `GITHUB_TOKEN` | 二选一 | 未配置时自动复用 `gh auth login` 凭证 |
 | `OPENAI_API_KEY` | 建议 | 可填 OpenRouter / 硅基流动等 OpenAI 兼容服务 |
+| `OPENAI_FALLBACK_MODEL` | 否 | 备用模型降级链（逗号分隔）：主模型限流/超时自动切换 |
+| `COMMIT_MODEL` / `TRENDING_MODEL` | 否 | 按场景覆盖模型：提交信息 / 热榜翻译研读（留空用 OPENAI_MODEL） |
 | `USER_INTERESTS` | 否 | 热榜筛选偏好，如 `AI Agent, Python, Rust` |
 | `NTFY_TOPIC` / `NTFY_SERVER` | 否 | Ntfy 手机推送（推荐，通知栏可直接操作） |
 | `DINGTALK_WEBHOOK` / `WECHAT_WEBHOOK` / `EMAIL_*` | 否 | 可选推送渠道：钉钉 / 企业微信 / 邮件 |

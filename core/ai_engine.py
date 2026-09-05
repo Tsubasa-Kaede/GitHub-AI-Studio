@@ -18,14 +18,17 @@ AI 不可用或调用失败时，根据 AI_FALLBACK_ENABLED 自动降级为本�
 from __future__ import annotations
 
 import json
+import logging
 import re
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 from openai import OpenAI
 from openai import APIError, APITimeoutError, AuthenticationError, RateLimitError
 
 from config import settings
 from models import RepoInfo, TrendingRepo
+
+logger = logging.getLogger(__name__)
 
 MAX_PROMPT_CHARS = 40_000
 
@@ -37,7 +40,15 @@ ANTI_TRANSLITERATION = (
 )
 
 class AIEngineError(RuntimeError):
-    """AI 引擎错误。"""
+    """AI 引擎错误。
+
+    retryable=True 表示换一个模型重试可能成功（限流/超时/网关错误），
+    供模型降级链判断是否切换 OPENAI_FALLBACK_MODEL。
+    """
+
+    def __init__(self, message: str, retryable: bool = False):
+        super().__init__(message)
+        self.retryable = retryable
 
 
 class AIEngine:
@@ -79,54 +90,108 @@ class AIEngine:
             self._client = self._build_client()
         return self._client
 
-    def _chat(self, system: str, user: str, *, temperature: float = 0.3, max_tokens: int = 2000) -> str:
-        """普通文本对话，统一翻译 OpenAI 异常。"""
-        try:
-            response = self._get_client().chat.completions.create(
-                model=self.model,
-                messages=[
+    # ------------------------------------------------------------------
+    def _resolve_model(self, task: Optional[str]) -> str:
+        """解析任务模型：COMMIT_MODEL / TRENDING_MODEL 场景覆盖优先，回落全局模型。"""
+        if task:
+            override = {
+                "commit": settings.commit_model,
+                "trending": settings.trending_model,
+            }.get(task, "").strip()
+            if override:
+                return override
+        return self.model
+
+    def _model_chain(self, task: Optional[str] = None) -> List[str]:
+        """主模型 + OPENAI_FALLBACK_MODEL 备用链（逗号分隔，去重、过滤空值）。"""
+        chain = [self._resolve_model(task)]
+        for model in re.split(r"[,，、;；\s]+", settings.openai_fallback_model or ""):
+            model = model.strip()
+            if model and model not in chain:
+                chain.append(model)
+        return chain
+
+    def _call_with_fallback(self, request: Callable[[str], Any], task: Optional[str]) -> Any:
+        """按模型链发起调用：可重试错误（限流/超时/网关）自动切换备用模型。"""
+        chain = self._model_chain(task)
+        for index, model in enumerate(chain):
+            try:
+                return request(model)
+            except AIEngineError as exc:
+                if index >= len(chain) - 1 or not getattr(exc, "retryable", False):
+                    raise
+                logger.warning("模型 %s 调用失败（%s），切换备用模型 %s", model, exc, chain[index + 1])
+
+    def _chat(
+        self,
+        system: str,
+        user: str,
+        *,
+        temperature: float = 0.3,
+        max_tokens: int = 2000,
+        task: Optional[str] = None,
+    ) -> str:
+        """普通文本对话，统一翻译 OpenAI 异常；走模型降级链。"""
+        def _request(model: str) -> str:
+            try:
+                response = self._get_client().chat.completions.create(
+                    model=model,
+                    messages=[
+                        {"role": "system", "content": system},
+                        {"role": "user", "content": user},
+                    ],
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                )
+                return (response.choices[0].message.content or "").strip()
+            except AuthenticationError as exc:
+                raise AIEngineError("OPENAI_API_KEY 无效或已过期，请检查配置。") from exc
+            except RateLimitError as exc:
+                raise AIEngineError("OpenAI 速率限制或余额不足，请稍后重试。", retryable=True) from exc
+            except APITimeoutError as exc:
+                raise AIEngineError(f"OpenAI 请求超时（{settings.request_timeout}s）。", retryable=True) from exc
+            except APIError as exc:
+                raise AIEngineError(f"OpenAI API 错误：{exc}", retryable=True) from exc
+
+        return self._call_with_fallback(_request, task)
+
+    def _chat_json(
+        self,
+        system: str,
+        user: str,
+        *,
+        temperature: float = 0.2,
+        max_tokens: int = 2000,
+        task: Optional[str] = None,
+    ) -> dict:
+        """JSON 结构化对话（response_format=json_object）；走模型降级链。"""
+        def _request(model: str) -> dict:
+            payload: Dict[str, Any] = {
+                "model": model,
+                "messages": [
                     {"role": "system", "content": system},
                     {"role": "user", "content": user},
                 ],
-                temperature=temperature,
-                max_tokens=max_tokens,
-            )
-            return (response.choices[0].message.content or "").strip()
-        except AuthenticationError as exc:
-            raise AIEngineError("OPENAI_API_KEY 无效或已过期，请检查配置。") from exc
-        except RateLimitError as exc:
-            raise AIEngineError("OpenAI 速率限制或余额不足，请稍后重试。") from exc
-        except APITimeoutError as exc:
-            raise AIEngineError(f"OpenAI 请求超时（{settings.request_timeout}s）。") from exc
-        except APIError as exc:
-            raise AIEngineError(f"OpenAI API 错误：{exc}") from exc
-
-    def _chat_json(self, system: str, user: str, *, temperature: float = 0.2, max_tokens: int = 2000) -> dict:
-        """JSON 结构化对话（response_format=json_object）。"""
-        payload: Dict[str, Any] = {
-            "model": self.model,
-            "messages": [
-                {"role": "system", "content": system},
-                {"role": "user", "content": user},
-            ],
-            "temperature": temperature,
-            "max_tokens": max_tokens,
-            "response_format": {"type": "json_object"},
-        }
-        try:
-            response = self._get_client().chat.completions.create(**payload)
-            raw = (response.choices[0].message.content or "").strip()
-            return json.loads(raw)
-        except (AuthenticationError, RateLimitError, APITimeoutError, APIError) as exc:
-            if isinstance(exc, AuthenticationError):
+                "temperature": temperature,
+                "max_tokens": max_tokens,
+                "response_format": {"type": "json_object"},
+            }
+            try:
+                response = self._get_client().chat.completions.create(**payload)
+                raw = (response.choices[0].message.content or "").strip()
+                return json.loads(raw)
+            except AuthenticationError as exc:
                 raise AIEngineError("OPENAI_API_KEY 无效或已过期，请检查配置。") from exc
-            if isinstance(exc, RateLimitError):
-                raise AIEngineError("OpenAI 速率限制或余额不足，请稍后重试。") from exc
-            if isinstance(exc, APITimeoutError):
-                raise AIEngineError(f"OpenAI 请求超时（{settings.request_timeout}s）。") from exc
-            raise AIEngineError(f"OpenAI API 错误：{exc}") from exc
-        except json.JSONDecodeError as exc:
-            raise AIEngineError("AI 返回内容无法解析为 JSON，请重试或降级。") from exc
+            except RateLimitError as exc:
+                raise AIEngineError("OpenAI 速率限制或余额不足，请稍后重试。", retryable=True) from exc
+            except APITimeoutError as exc:
+                raise AIEngineError(f"OpenAI 请求超时（{settings.request_timeout}s）。", retryable=True) from exc
+            except APIError as exc:
+                raise AIEngineError(f"OpenAI API 错误：{exc}", retryable=True) from exc
+            except json.JSONDecodeError as exc:
+                raise AIEngineError("AI 返回内容无法解析为 JSON，请重试或降级。", retryable=True) from exc
+
+        return self._call_with_fallback(_request, task)
 
     # ------------------------------------------------------------------
     def ping(self) -> dict:
@@ -174,7 +239,7 @@ class AIEngine:
 【Diff】{diff_text[:MAX_PROMPT_CHARS]}
 """
         try:
-            return self._normalize_commit_message(self._chat(system, user, temperature=0.3, max_tokens=500))
+            return self._normalize_commit_message(self._chat(system, user, temperature=0.3, max_tokens=500, task="commit"))
         except AIEngineError:
             if settings.ai_fallback_enabled:
                 return self._fallback_commit_message(diff_text)
@@ -347,7 +412,7 @@ Top N：{top_n}
 {json.dumps(payload, ensure_ascii=False)[:MAX_PROMPT_CHARS]}
 """
         try:
-            data = self._chat_json(system, user, temperature=0.2, max_tokens=1500)
+            data = self._chat_json(system, user, temperature=0.2, max_tokens=1500, task="trending")
             matches = data.get("matches") or []
         except AIEngineError:
             if settings.ai_fallback_enabled:
@@ -452,7 +517,7 @@ Top N：{top_n}
 {json.dumps(payload, ensure_ascii=False)[:MAX_PROMPT_CHARS]}
 """
         try:
-            data = self._chat_json(system, user, temperature=0.3, max_tokens=700)
+            data = self._chat_json(system, user, temperature=0.3, max_tokens=700, task="trending")
             tags = [str(t).strip() for t in (data.get("tags") or []) if str(t).strip()][:4]
             briefing = (data.get("briefing") or "").strip()
             return {"tags": tags, "briefing": briefing}
@@ -520,7 +585,7 @@ Top N：{top_n}
 {(readme_text or '')[:12000]}
 """
         try:
-            data = self._chat_json(system, user, temperature=0.25, max_tokens=1600)
+            data = self._chat_json(system, user, temperature=0.25, max_tokens=1600, task="trending")
             return apply_section_rules({
                 "overview": str(data.get("overview") or fallback["overview"]).strip(),
                 "pain_points": str(data.get("pain_points") or fallback["pain_points"]).strip(),
@@ -587,7 +652,7 @@ Top N：{top_n}
         try:
             data = self._chat_json(
                 COMPACT_SUMMARY_SYSTEM_PROMPT, user,
-                temperature=0.2, max_tokens=300,
+                temperature=0.2, max_tokens=300, task="trending",
             )
             return apply_compact_rules({
                 "position": data.get("position"),

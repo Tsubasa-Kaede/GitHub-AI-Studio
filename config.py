@@ -50,6 +50,9 @@ GITHUB_TOKEN=
 OPENAI_API_KEY=
 OPENAI_MODEL=gpt-4o-mini
 OPENAI_BASE_URL=
+OPENAI_FALLBACK_MODEL=
+COMMIT_MODEL=
+TRENDING_MODEL=
 USER_INTERESTS=AI Agent, Python, Rust, DevTools
 DEFAULT_REPO_VISIBILITY=private
 DEFAULT_BRANCH=main
@@ -214,6 +217,9 @@ class Settings:
     openai_api_key: str
     openai_model: str
     openai_base_url: str
+    openai_fallback_model: str     # 备用模型（逗号分隔），主模型限流/超时自动切换
+    commit_model: str              # 按场景覆盖：提交信息（留空用 OPENAI_MODEL）
+    trending_model: str            # 按场景覆盖：热榜翻译/研读/简报（留空用 OPENAI_MODEL）
     user_interests: List[str]
     default_repo_visibility: str
     default_branch: str
@@ -289,6 +295,9 @@ def load_settings() -> Settings:
         openai_api_key=_env("OPENAI_API_KEY"),
         openai_model=_env("OPENAI_MODEL", "gpt-4o-mini"),
         openai_base_url=_env("OPENAI_BASE_URL"),
+        openai_fallback_model=_env("OPENAI_FALLBACK_MODEL"),
+        commit_model=_env("COMMIT_MODEL"),
+        trending_model=_env("TRENDING_MODEL"),
         user_interests=_parse_interests(
             _env("USER_INTERESTS"), ["AI Agent", "Python", "DevTools"]
         ),

@@ -128,6 +128,22 @@ def render() -> None:
             "OPENAI_BASE_URL（可选，兼容中转）", value=settings.openai_base_url,
             key="set_ai_base", placeholder="https://api.openai.com/v1",
         )
+        col_m1, col_m2 = st.columns(2)
+        with col_m1:
+            commit_model = st.text_input(
+                "COMMIT_MODEL（可选，覆盖提交信息模型）", value=settings.commit_model,
+                key="set_commit_model", placeholder="留空用 OPENAI_MODEL",
+            )
+        with col_m2:
+            trending_model = st.text_input(
+                "TRENDING_MODEL（可选，覆盖热榜模型）", value=settings.trending_model,
+                key="set_trending_model", placeholder="留空用 OPENAI_MODEL",
+            )
+        ai_fallback = st.text_input(
+            "OPENAI_FALLBACK_MODEL（可选，备用模型降级链，逗号分隔）", value=settings.openai_fallback_model,
+            key="set_ai_fallback", placeholder="gpt-4o-mini, deepseek-v3",
+            help="主模型遇到限流/超时/网关错误时自动按顺序切换；留空不启用",
+        )
         if st.button(tr("settings.test").format(channel="AI"), use_container_width=True, key="test_ai"):
             _show_result(_test_ai(ai_key, ai_base, ai_model), "AI 响应正常")
 
@@ -207,6 +223,9 @@ def render() -> None:
             "OPENAI_API_KEY": ai_key,
             "OPENAI_MODEL": ai_model,
             "OPENAI_BASE_URL": ai_base,
+            "OPENAI_FALLBACK_MODEL": ai_fallback,
+            "COMMIT_MODEL": commit_model,
+            "TRENDING_MODEL": trending_model,
             "GITHUB_TOKEN": gh_token,
             "NOTION_TOKEN": notion_token,
             "NOTION_DATABASE_ID": notion_db,
