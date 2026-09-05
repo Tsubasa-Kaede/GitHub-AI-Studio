@@ -21,8 +21,12 @@ ProgressCb = Callable[[int, str], None]
 
 
 def _version_key(tag: str) -> tuple:
-    """把版本标签拆成可比较元组：数字段按数值、字母段按小写。"""
-    return tuple(int(p) if p.isdigit() else p.lower() for p in re.findall(r"\d+|[a-zA-Z]+", tag or ""))
+    """把版本标签拆为纯数字段元组：v1.10 → (1, 10)，保证可比较。
+
+    只取数字段（忽略 v / release 等字母前后缀），避免
+    ('v', 1, 0) 与 (1, 2) 这类 int/str 混合比较的 TypeError。
+    """
+    return tuple(int(p) for p in re.findall(r"\d+", tag or ""))
 
 
 class ReleaseService:
