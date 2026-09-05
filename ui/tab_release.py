@@ -11,7 +11,7 @@ from ui import theme
 
 def render() -> None:
     """渲染发版页面。"""
-    theme.section_header("📦", tr("release.title"), tr("release.desc"))
+    theme.section_header("", tr("release.title"), tr("release.desc"))
     theme.tagline(["读取 Git Log", "AI 分类", "预览编辑", "发布 Release"])
 
     get_github_client()
@@ -20,11 +20,11 @@ def render() -> None:
         col1, col2 = st.columns(2)
         with col1:
             repo_path = st.text_input(
-                "📁 本地 Git 仓库目录", placeholder="C:\\Users\\you\\my-project", key="release_repo_path"
+                "本地 Git 仓库目录", placeholder="C:\\Users\\you\\my-project", key="release_repo_path"
             )
-            tag = st.text_input("🏷️ 版本 Tag", placeholder="v1.2.0", key="release_tag")
+            tag = st.text_input("版本 Tag", placeholder="v1.2.0", key="release_tag")
         with col2:
-            st.text_input("🌐 GitHub 仓库全名", placeholder="owner/repo", key="release_full_name")
+            st.text_input("GitHub 仓库全名", placeholder="owner/repo", key="release_full_name")
             st.caption("Release 将发布到该远程仓库")
 
         if st.button(tr("release.generate"), type="primary", use_container_width=True,
@@ -44,7 +44,7 @@ def render() -> None:
             c2.metric("版本", info.tag)
             c3.metric("对比上一版", info.previous_tag or "-")
             st.text_area(
-                "📝 CHANGELOG（可编辑后发布）", value=info.changelog,
+                "CHANGELOG（可编辑后发布）", value=info.changelog,
                 height=320, key="release_changelog_editor",
             )
             if st.button(tr("release.publish"), type="primary", use_container_width=True, key="release_publish"):
@@ -56,6 +56,6 @@ def render() -> None:
                         st.session_state["release_full_name"], info,
                         body=st.session_state.get("release_changelog_editor", info.changelog),
                     )
-                    st.success(f"🎉 Release 已发布：{result['url']}")
+                    st.success(f"✓ Release 已发布：{result['url']}")
                 except Exception as exc:  # noqa: BLE001
                     render_error(exc)

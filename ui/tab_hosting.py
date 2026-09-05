@@ -11,7 +11,7 @@ from ui import theme
 
 def render() -> None:
     """渲染一键托管页面。"""
-    theme.section_header("🚀", tr("hosting.title"), tr("hosting.desc"))
+    theme.section_header("", tr("hosting.title"), tr("hosting.desc"))
     theme.tagline(["选择目录", "AI README", "GitHub 建仓", "Commit & Push"])
 
     get_github_client()  # 未登录直接提示并停止
@@ -32,9 +32,9 @@ def render() -> None:
         col1, col2 = st.columns([3, 2])
         with col1:
             path = st.text_input(
-                "📁 本地项目目录（绝对路径）", placeholder="C:\\Users\\you\\my-project", key="host_path"
+                "本地项目目录（绝对路径）", placeholder="C:\\Users\\you\\my-project", key="host_path"
             )
-            repo_name = st.text_input("📦 远程仓库名", placeholder="my-awesome-project", key="host_repo_name",
+            repo_name = st.text_input("远程仓库名", placeholder="my-awesome-project", key="host_repo_name",
                                       help="留空则使用目录名")
         with col2:
             visibility = st.radio("可见性", ["private", "public"], horizontal=True, key="host_visibility")
@@ -63,8 +63,8 @@ def render() -> None:
                     readme_languages=langs, force=force,
                     progress_cb=on_progress,
                 )
-                st.success("🎉 托管成功！")
-                st.markdown(f"🔗 **仓库地址**：{result.repo_url}")
+                st.success("✓ 托管成功")
+                st.markdown(f"**仓库地址**：{result.repo_url}")
                 col_a, col_b, col_c = st.columns(3)
                 col_a.metric("分支", result.branch)
                 col_b.metric("提交", result.commit_sha[:7])

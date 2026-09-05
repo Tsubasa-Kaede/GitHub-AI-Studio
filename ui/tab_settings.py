@@ -103,7 +103,7 @@ def _source_badge() -> None:
 def render() -> None:
     """渲染极简配置中心：四个服务卡片 + 一键测试 + 保存热重载。"""
     theme.section_header(
-        "⚙️", tr("settings.title"), tr("settings.desc"),
+        "", tr("settings.title"), tr("settings.desc"),
     )
     theme.tagline(["填写配置", "一键测试", "保存生效"])
 

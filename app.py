@@ -53,7 +53,7 @@ def main() -> None:
         [
             components.tr("nav.tab_hosting"),
             components.tr("nav.tab_commit"),
-            "🔥 中文热榜",  # 热榜版块保持中文，不参与双语切换
+            "中文热榜",  # 热榜版块保持中文，不参与双语切换
             components.tr("nav.tab_release"),
             components.tr("nav.tab_star"),
             components.tr("nav.tab_worklog"),

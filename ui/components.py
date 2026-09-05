@@ -114,7 +114,7 @@ def render_sidebar() -> None:
     current_lang = st.session_state.get("lang") or app_config.get_language()
     current_label = "中文" if current_lang == "zh_CN" else "English"
     selected_label = st.sidebar.selectbox(
-        "🌐 Language / 语言",
+        "Language / 语言",
         list(lang_options),
         index=list(lang_options).index(current_label),
         key="cfg_lang",
