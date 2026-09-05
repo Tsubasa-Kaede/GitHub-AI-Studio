@@ -4,10 +4,10 @@ GitHub-AI-Studio 视觉设计系统
 =============================
 
 设计方向：「本地开发者指挥台」
-    - 深空蓝黑底色 + 柔和紫色主色 + 青色点缀（AI 活性/成功信号）；
-    - 终端风品牌条（`❯ ghai --studio` + 实时状态点）作为全局记忆点；
+    - 深空蓝黑底色 + 单一克制的主色，无渐变、无光晕、无多余动效；
+    - 终端风品牌条（`❯ ghai --studio` + 状态点）作为全局记忆点；
     - 数据型内容统一使用等宽字体，营造「控制台」质感；
-    - 卡片圆角、胶囊 Tab、主次分明的按钮层级；
+    - 装饰只保留层级必需的边框与表面色差，信息密度优先；
     - 遵守可访问性：焦点可见、足够对比度、尊重 reduced-motion。
 
 本模块只负责「视觉层」，不包含任何业务逻辑，所有 Tab 页均可复用。
@@ -28,9 +28,9 @@ COLORS = {
     "surface": "#101726",          # 卡片 / 输入框表面
     "surface_2": "#182137",        # 悬停 / 抬升表面
     "border": "rgba(151, 167, 201, 0.14)",
-    "primary": "#8B7CFF",          # 主紫
-    "primary_hi": "#A78BFA",       # 主紫高亮
-    "accent": "#22D3EE",           # 青色点缀（AI / 在线）
+    "primary": "#4A8AF4",          # 主色（克制的工作台蓝）
+    "primary_hi": "#6FA3F8",       # 主色高亮
+    "accent": "#4A8AF4",           # 点缀色（与主色统一，减少色相数）
     "success": "#34D399",
     "warning": "#FBBF24",
     "danger": "#F87171",
@@ -72,9 +72,9 @@ CSS = """
     --surface: #101726;
     --surface-2: #182137;
     --border: rgba(151, 167, 201, 0.14);
-    --primary: #8B7CFF;
-    --primary-hi: #A78BFA;
-    --accent: #22D3EE;
+    --primary: #4A8AF4;
+    --primary-hi: #6FA3F8;
+    --accent: #4A8AF4;
     --success: #34D399;
     --warning: #FBBF24;
     --danger: #F87171;
@@ -88,15 +88,16 @@ CSS = """
 
     color: var(--text);
     font-family: var(--font-body);
-    background:
-        radial-gradient(1100px 460px at 88% -8%, rgba(139, 124, 255, 0.10), transparent 60%),
-        radial-gradient(900px 420px at -8% 8%, rgba(34, 211, 238, 0.05), transparent 55%),
-        var(--bg-deep);
+    background: var(--bg-deep);
 }
 
 /* ---------- 全局框架 ---------- */
 [data-testid="stHeader"] {
     background: transparent;
+}
+/* 隐藏 Streamlit 原生 Deploy / 主菜单工具栏（与应用无关的原生元素） */
+[data-testid="stHeader"] [data-testid="stToolbar"] {
+    display: none !important;
 }
 [data-testid="stMainBlockContainer"] {
     max-width: 1200px;
@@ -104,8 +105,7 @@ CSS = """
     padding-bottom: 3rem;
 }
 [data-testid="stSidebar"] {
-    background:
-        linear-gradient(180deg, rgba(16, 23, 38, 0.96), rgba(10, 15, 26, 0.98));
+    background: #0B101B;
     border-right: 1px solid var(--border);
 }
 [data-testid="stSidebar"] [data-testid="stSidebarContent"] {
@@ -128,20 +128,17 @@ CSS = """
 }
 .ghai-brand-mark {
     flex: 0 0 auto;
-    width: 46px;
-    height: 46px;
-    border-radius: 14px;
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
     display: grid;
     place-items: center;
     font-family: var(--font-mono);
     font-weight: 800;
-    font-size: 20px;
-    color: #fff;
-    background:
-        linear-gradient(145deg, rgba(139, 124, 255, 0.95), rgba(99, 102, 241, 0.9));
-    box-shadow:
-        0 6px 22px rgba(139, 124, 255, 0.35),
-        inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    font-size: 19px;
+    color: var(--primary);
+    background: var(--surface);
+    border: 1px solid var(--border);
 }
 .ghai-brand-title {
     font-size: 20px;
@@ -169,9 +166,7 @@ CSS = """
     font-weight: 700;
     letter-spacing: 1px;
     color: var(--success);
-    background: rgba(52, 211, 153, 0.09);
-    border: 1px solid rgba(52, 211, 153, 0.28);
-    border-radius: 999px;
+    border-radius: 6px;
     padding: 5px 11px;
 }
 .ghai-live .dot {
@@ -179,23 +174,11 @@ CSS = """
     height: 7px;
     border-radius: 50%;
     background: var(--success);
-    box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.55);
-    animation: ghai-pulse 2.4s ease-out infinite;
-}
-@keyframes ghai-pulse {
-    0% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.45); }
-    70% { box-shadow: 0 0 0 7px rgba(52, 211, 153, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); }
 }
 .ghai-hairline {
     height: 1px;
     margin: 0 0 20px 0;
-    background: linear-gradient(
-        90deg,
-        rgba(139, 124, 255, 0.55),
-        rgba(34, 211, 238, 0.18),
-        transparent
-    );
+    background: var(--border);
 }
 
 /* ---------- 页头 / 章节标题 ---------- */
@@ -224,46 +207,47 @@ CSS = """
     line-height: 1.55;
 }
 
-/* ---------- 胶囊 Tab ---------- */
+/* ---------- Tab（分组分段，不再是胶囊） ---------- */
 [data-testid="stTabs"] [data-baseweb="tab-list"] {
-    gap: 6px;
+    gap: 2px;
     width: fit-content;
     max-width: 100%;
-    background: rgba(16, 23, 38, 0.72);
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    padding: 5px;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    border-radius: 0;
+    padding: 0;
     margin-bottom: 18px;
 }
 [data-testid="stTabs"] [data-baseweb="tab"] {
-    border-radius: 999px;
-    padding: 7px 15px;
-    color: var(--text-2);
+    border-radius: 6px 6px 0 0;
+    padding: 8px 14px;
+    color: var(--text-3);
     font-weight: 600;
     font-size: 13px;
-    transition: color 0.15s ease, background 0.15s ease;
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s ease;
 }
 [data-testid="stTabs"] [data-baseweb="tab"]:hover {
     color: var(--text);
-    background: rgba(139, 124, 255, 0.10);
+    background: transparent;
 }
 [data-testid="stTabs"] [data-baseweb="tab"][aria-selected="true"] {
-    color: #fff;
-    background: linear-gradient(135deg, rgba(139, 124, 255, 0.95), rgba(109, 93, 246, 0.95));
-    box-shadow: 0 4px 14px rgba(139, 124, 255, 0.30);
+    color: var(--text);
+    background: transparent;
+    border-bottom: 2px solid var(--primary);
+    box-shadow: none;
 }
 
 /* ---------- 卡片（st.container border / st.metric） ---------- */
 [data-testid="stVerticalBlockBorderWrapper"] {
-    background: linear-gradient(180deg, rgba(16, 23, 38, 0.92), rgba(13, 19, 33, 0.92));
+    background: var(--surface);
     border: 1px solid var(--border) !important;
-    border-radius: 14px;
-    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset;
-    transition: border-color 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease;
+    border-radius: 10px;
+    transition: border-color 0.16s ease;
 }
 [data-testid="stVerticalBlockBorderWrapper"]:hover {
-    border-color: rgba(139, 124, 255, 0.38) !important;
-    box-shadow: 0 8px 28px rgba(7, 11, 18, 0.45);
+    border-color: rgba(151, 167, 201, 0.26) !important;
 }
 
 [data-testid="stMetric"] {
@@ -295,7 +279,7 @@ CSS = """
 [data-testid="stDownloadButton"] > button,
 [data-testid="stBaseButton-secondary"] button,
 [data-testid="stLinkButton"] {
-    border-radius: 10px;
+    border-radius: 8px;
     border: 1px solid var(--border);
     background: var(--surface);
     color: var(--text-2);
@@ -308,7 +292,7 @@ CSS = """
 [data-testid="stDownloadButton"] > button:hover,
 [data-testid="stBaseButton-secondary"] button:hover,
 [data-testid="stLinkButton"]:hover {
-    border-color: rgba(139, 124, 255, 0.45);
+    border-color: rgba(151, 167, 201, 0.30);
     color: var(--text);
     background: var(--surface-2);
 }
@@ -316,18 +300,16 @@ CSS = """
 [data-testid="stBaseButton-primary"] button,
 [data-testid="stBaseButton-primaryFormSubmit"] button,
 .stButton > button[kind="primary"] {
-    background: linear-gradient(135deg, #8B7CFF, #6D5DF6) !important;
+    background: var(--primary) !important;
     border: none !important;
     color: #fff !important;
-    font-weight: 700;
-    box-shadow: 0 5px 18px rgba(139, 124, 255, 0.28);
+    font-weight: 650;
 }
 [data-testid="stBaseButton-primary"] button:hover,
 [data-testid="stBaseButton-primaryFormSubmit"] button:hover,
 .stButton > button[kind="primary"]:hover {
-    background: linear-gradient(135deg, #A78BFA, #7C6CF8) !important;
-    box-shadow: 0 7px 24px rgba(139, 124, 255, 0.38);
-    transform: translateY(-1px);
+    background: var(--primary-hi) !important;
+    box-shadow: none;
 }
 
 /* ---------- 输入控件 ---------- */
@@ -345,8 +327,8 @@ CSS = """
 [data-testid="stTextInput"] input:focus,
 [data-testid="stTextArea"] textarea:focus,
 [data-testid="stNumberInput"] input:focus {
-    border-color: rgba(139, 124, 255, 0.65) !important;
-    box-shadow: 0 0 0 3px rgba(139, 124, 255, 0.14) !important;
+    border-color: rgba(74, 138, 244, 0.55) !important;
+    box-shadow: 0 0 0 2px rgba(74, 138, 244, 0.15) !important;
 }
 [data-testid="stTextInput"] label,
 [data-testid="stTextArea"] label,
@@ -363,7 +345,7 @@ CSS = """
 }
 [data-testid="stRadio"] label {
     border: 1px solid var(--border);
-    border-radius: 999px;
+    border-radius: 8px;
     padding: 4px 12px;
     background: var(--surface);
 }
@@ -381,7 +363,7 @@ CSS = """
     background: rgba(151, 167, 201, 0.10);
 }
 [data-testid="stProgress"] [role="progressbar"] > div > div > div {
-    background: linear-gradient(90deg, #8B7CFF, #22D3EE);
+    background: var(--primary);
     border-radius: 999px;
 }
 
@@ -419,26 +401,27 @@ CSS = """
     align-items: center;
     gap: 12px;
     padding: 12px 14px;
-    border-radius: 14px;
+    border-radius: 10px;
     border: 1px solid var(--border);
-    background: linear-gradient(180deg, rgba(16, 23, 38, 0.95), rgba(13, 19, 33, 0.95));
+    background: var(--surface);
     margin: 2px 0 10px 0;
 }
 .ghai-status-card.warn {
-    border-color: rgba(251, 191, 36, 0.35);
+    border-color: rgba(251, 191, 36, 0.30);
 }
 .ghai-status-avatar {
     flex: 0 0 auto;
     width: 38px;
     height: 38px;
-    border-radius: 11px;
+    border-radius: 9px;
     display: grid;
     place-items: center;
     font-family: var(--font-mono);
     font-weight: 800;
-    font-size: 17px;
-    color: #fff;
-    background: linear-gradient(145deg, rgba(139, 124, 255, 0.9), rgba(34, 211, 238, 0.65));
+    font-size: 16px;
+    color: var(--text-2);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
 }
 .ghai-status-body {
     min-width: 0;
@@ -493,35 +476,35 @@ CSS = """
     font-size: 11px;
     font-weight: 600;
     color: var(--text-2);
-    background: rgba(139, 124, 255, 0.10);
-    border: 1px solid rgba(139, 124, 255, 0.25);
-    border-radius: 999px;
-    padding: 3px 10px;
+    background: rgba(151, 167, 201, 0.08);
+    border: 1px solid rgba(151, 167, 201, 0.20);
+    border-radius: 6px;
+    padding: 3px 9px;
     margin: 0 6px 6px 0;
 }
 .ghai-score {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
     font-family: var(--font-mono);
     font-size: 12px;
-    font-weight: 800;
-    color: #fff;
-    background: linear-gradient(135deg, rgba(139, 124, 255, 0.9), rgba(109, 93, 246, 0.9));
-    border-radius: 999px;
-    padding: 3px 11px;
-    box-shadow: 0 3px 12px rgba(139, 124, 255, 0.25);
+    font-weight: 700;
+    color: var(--text-2);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 3px 9px;
 }
 .ghai-empty {
     text-align: center;
     padding: 44px 20px;
-    border: 1px dashed rgba(151, 167, 201, 0.28);
-    border-radius: 16px;
-    background: rgba(16, 23, 38, 0.45);
+    border: 1px dashed rgba(151, 167, 201, 0.24);
+    border-radius: 10px;
+    background: transparent;
 }
 .ghai-empty-icon {
-    font-size: 34px;
+    font-size: 26px;
     margin-bottom: 10px;
+    color: var(--text-3);
 }
 .ghai-empty-title {
     font-size: 15px;
@@ -549,16 +532,16 @@ CSS = """
     color: var(--text-3);
     background: rgba(16, 23, 38, 0.8);
     border: 1px solid var(--border);
-    border-radius: 999px;
-    padding: 5px 12px;
+    border-radius: 6px;
+    padding: 5px 11px;
 }
 .ghai-step .n {
     color: var(--primary);
 }
 .ghai-step.active {
     color: var(--text);
-    border-color: rgba(139, 124, 255, 0.45);
-    background: rgba(139, 124, 255, 0.10);
+    border-color: rgba(74, 138, 244, 0.40);
+    background: rgba(74, 138, 244, 0.08);
 }
 .ghai-tagline {
     display: flex;
@@ -570,10 +553,10 @@ CSS = """
     margin: 2px 0 16px 0;
 }
 .ghai-tagline code {
-    color: var(--accent);
-    background: rgba(34, 211, 238, 0.08);
-    border: 1px solid rgba(34, 211, 238, 0.22);
-    border-radius: 6px;
+    color: var(--text-2);
+    background: rgba(151, 167, 201, 0.07);
+    border: 1px solid rgba(151, 167, 201, 0.18);
+    border-radius: 5px;
     padding: 1px 7px;
     font-size: 11.5px;
 }
@@ -642,12 +625,13 @@ def render_brand_header() -> None:
 
 
 def section_header(icon: str, title: str, desc: str = "") -> None:
-    """统一章节标题：终端前缀 + 标题 + 说明。"""
+    """统一章节标题：终端前缀 + 标题 + 说明（icon 可空，保持克制）。"""
+    prefix = f"{esc(icon)} " if icon else ""
     st.markdown(
         f"""
         <div class="ghai-section">
           <span class="ghai-section-prefix">#</span>
-          <span class="ghai-section-title">{esc(icon)} {esc(title)}</span>
+          <span class="ghai-section-title">{prefix}{esc(title)}</span>
         </div>
         <div class="ghai-section-desc">{esc(desc)}</div>
         """,
@@ -695,7 +679,7 @@ def chips(items: list[str], fallback: str = "多语言") -> None:
 def score_badge(score: float | int | None) -> None:
     """热榜匹配度徽章（9.5/10）。"""
     text = f"{score:.1f}/10" if score is not None else "-"
-    st.markdown(f'<span class="ghai-score">🔥 {esc(text)}</span>', unsafe_allow_html=True)
+    st.markdown(f'<span class="ghai-score">{esc(text)}</span>', unsafe_allow_html=True)
 
 
 def sidebar_status_card(
@@ -708,7 +692,7 @@ def sidebar_status_card(
     else:
         tone, title = "warn", "未连接 GitHub"
         meta = (error or "请检查 Token / 网络 / 代理")[:42]
-        avatar = "?"
+        avatar = "○"  # 空心圆：未连接（区别于登录态的首字母头像）
     st.markdown(
         f"""
         <div class="ghai-status-card {tone}">
