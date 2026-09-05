@@ -24,7 +24,7 @@ def render() -> None:
             )
             tag = st.text_input("🏷️ 版本 Tag", placeholder="v1.2.0", key="release_tag")
         with col2:
-            full_name = st.text_input("🌐 GitHub 仓库全名", placeholder="owner/repo", key="release_full_name")
+            st.text_input("🌐 GitHub 仓库全名", placeholder="owner/repo", key="release_full_name")
             st.caption("Release 将发布到该远程仓库")
 
         if st.button(tr("release.generate"), type="primary", use_container_width=True,
@@ -33,7 +33,6 @@ def render() -> None:
                 info = get_release_service().generate(repo_path=repo_path, tag=tag)
                 st.session_state["release_info"] = info
                 st.session_state["release_changelog_editor"] = info.changelog
-                st.session_state["release_full_name"] = full_name
             except Exception as exc:  # noqa: BLE001
                 render_error(exc)
 
