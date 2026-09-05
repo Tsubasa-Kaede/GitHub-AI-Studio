@@ -76,12 +76,13 @@ def main() -> None:
         tab_settings.render()
 
     st.divider()
+    footer_text = components.tr("app.footer")
     st.markdown(
-        """
+        f"""
         <div style="display:flex;align-items:center;gap:8px;opacity:.72;
                     font-family:var(--font-mono);font-size:11px;color:var(--text-3);">
           <span>❯ ghai --studio</span><span>·</span>
-          <span>{components.tr("app.footer")}</span>
+          <span>{footer_text}</span>
         </div>
         """,
         unsafe_allow_html=True,
