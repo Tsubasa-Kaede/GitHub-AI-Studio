@@ -28,15 +28,36 @@ STATE_FILE: Path = PROJECT_ROOT / "data" / "config.json"
 LEGACY_CHANNEL_FILE: Path = PROJECT_ROOT / "data" / "notifiers.json"
 
 DEFAULT_TECH_STACK: List[str] = [
+    # AI / 算法
     "LLM / Agent",
     "RAG / 知识库",
-    "Python",
     "ComfyUI / AIGC",
-    "Rust / Go",
-    "前端 / Web3",
     "计算机视觉 (CV)",
+    "语音 / 音频",
+    "多模态",
+    "AI 推理 / 量化",
+    "模型训练 / 微调",
+    # 编程语言
+    "Python",
+    "JavaScript / TypeScript",
+    "Java / Kotlin",
+    "C / C++",
+    "C# / .NET",
+    "Rust / Go",
+    "Swift / iOS",
+    # 工程 / 基础设施
     "数据工程",
+    "数据库 / 存储",
+    "DevOps / 云原生",
+    "分布式 / 中间件",
+    "安全 / 隐私",
+    # 客户端 / 终端
+    "前端 / Web3",
+    "桌面 / 跨端",
+    "游戏 / 引擎",
     "嵌入式 / IoT",
+    "机器人 / 自动驾驶",
+    "工具链 / 效率",
 ]
 
 
