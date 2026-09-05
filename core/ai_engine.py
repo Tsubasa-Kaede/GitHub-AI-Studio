@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import json
 import re
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from openai import OpenAI
 from openai import APIError, APITimeoutError, AuthenticationError, RateLimitError
