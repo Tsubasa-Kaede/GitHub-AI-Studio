@@ -416,7 +416,7 @@ class NotifierManager:
         self.last_errors: Dict[str, str] = {}
         channels = self.available_channels()
         if not channels:
-            logger.warning("没有已启用的推送渠道（data/notifiers.json）")
+            logger.warning("没有已启用的推送渠道（data/config.json 的 channels 段）")
             return {}
         results: Dict[str, bool] = {}
 
