@@ -118,7 +118,7 @@ def _render_topbar(items: list, tags: list, briefing: str, generated_at: str) ->
         try:
             age_hours = (datetime.now() - datetime.fromisoformat(generated_at)).total_seconds() / 3600
             if age_hours > 24:
-                st.warning(tr("trending.stale"))
+                st.caption(tr("trending.stale"))
         except (ValueError, TypeError):
             pass
     with top_m:
@@ -154,7 +154,8 @@ def _matches(repo: TrendingRepo, query: str) -> bool:
 
 
 def _render_master_list(repos: list) -> None:
-    """渲染左侧项目列表：使用 Streamlit 原生 Button，点击即时刷新右侧。"""
+    """渲染左侧项目列表：名称单行 + 元数据小字（终端文件列表风格）。"""
+    st.markdown('<span class="ghai-master-list" style="display:none;"></span>', unsafe_allow_html=True)
     st.markdown(f"**{tr('trending.count').format(n=len(repos))}**")
     if not repos:
         st.caption(tr("trending.empty_column"))
@@ -162,14 +163,13 @@ def _render_master_list(repos: list) -> None:
     selected = st.session_state.get("selected_repo_index", 0)
     for idx, repo in enumerate(repos):
         is_selected = idx == selected
-        prefix = "🔹 " if is_selected else "   "
-        btn_label = (
-            f"{prefix}{repo.name}  |  ⭐ {format_stars(repo.stars_total)}"
-            f" · {repo.language or 'Multi-language'}"
-        )
-        if st.button(btn_label, key=f"select_repo_{idx}", use_container_width=True):
+        prefix = "▸ " if is_selected else "  "
+        if st.button(f"{prefix}{repo.name}", key=f"select_repo_{idx}", use_container_width=True):
             st.session_state["selected_repo_index"] = idx
             st.rerun()
+        st.caption(
+            f"★ {format_stars(repo.stars_total)} · {repo.language or tr('trending.multilang')}"
+        )
 
 
 def _badges_html(repo: TrendingRepo) -> str:
@@ -208,8 +208,8 @@ def _render_detail(repo: TrendingRepo | None) -> None:
     compact_html = (
         '<div style="border:1px solid #30363d; border-radius:8px; padding:10px 12px; '
         'margin-bottom:14px; background:#0d1117; color:#c9d1d9; font-size:14px; line-height:1.9;">'
-        f'📌 <b style="color:#e6edf3;">定位：</b>{compact_position}<br>'
-        f'💡 <b style="color:#e6edf3;">亮点：</b>{compact_highlights or "—"}'
+        f'<b style="color:#e6edf3;">定位</b>　{compact_position}<br>'
+        f'<b style="color:#e6edf3;">亮点</b>　{compact_highlights or "—"}'
         "</div>"
     )
 
@@ -256,10 +256,10 @@ def _render_detail(repo: TrendingRepo | None) -> None:
                 <a class="ghai-detail-title" href="{url}" target="_blank"
                    style="font-size:18px; font-weight:700; color:#58a6ff; text-decoration:none;
                           min-width:0; overflow-wrap:anywhere;">
-                  🔥 {name}
+                  {name}
                 </a>
-                <span style="color:#f0883e; font-size:15px; font-weight:700; white-space:nowrap; flex-shrink:0;">
-                  ⭐ {stars} Stars
+                <span style="color:#f0883e; font-size:14px; font-weight:600; white-space:nowrap; flex-shrink:0;">
+                  ★ {stars}
                 </span>
               </div>
               <div style="margin-bottom:14px;">{_badges_html(repo)}</div>
@@ -271,7 +271,7 @@ def _render_detail(repo: TrendingRepo | None) -> None:
         )
         b1, b2, b3 = st.columns([1, 1, 1])
         with b1:
-            st.link_button("🔗 打开 GitHub", repo.url, key=f"detail_open_{repo.name}")
+            st.link_button("打开 GitHub", repo.url, key=f"detail_open_{repo.name}")
         with b2:
             if st.button(tr("trending.plan"), use_container_width=True, key=f"detail_plan_{repo.name}"):
                 _set_status(repo.name, "planned")
@@ -317,7 +317,7 @@ def _archive_to_notion(repo: TrendingRepo) -> None:
 
 def render() -> None:
     """渲染中文热榜看板页面。"""
-    # Master-Detail 样式（:has 精确命中热榜卡片容器，不影响其他 Tab）
+    # Master-Detail 样式（:has 精确命中热榜容器，不影响其他 Tab）
     st.markdown(
         """
         <style>
@@ -330,12 +330,32 @@ def render() -> None:
             border-radius: 12px;
             padding: 20px;
         }
+        /* 左侧项目列表：名称单行省略 + 左对齐（终端文件列表风格） */
+        [role="tabpanel"]:has(.ghai-master-list) button {
+            justify-content: flex-start !important;
+            text-align: left !important;
+        }
+        [role="tabpanel"]:has(.ghai-master-list) button > div,
+        [role="tabpanel"]:has(.ghai-master-list) button p {
+            display: block !important;
+            width: 100% !important;
+            margin: 0 !important;
+            justify-content: flex-start !important;
+            text-align: left !important;
+        }
+        [role="tabpanel"]:has(.ghai-master-list) button p {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-family: var(--font-mono);
+            font-size: 12.5px;
+        }
         </style>
         """,
         unsafe_allow_html=True,
     )
     theme.section_header(
-        "🔥", tr("trending.title"), tr("trending.desc"),
+        "", tr("trending.title"), tr("trending.desc"),
     )
     theme.tagline([
         tr("trending.step_preload"),
@@ -358,7 +378,7 @@ def render() -> None:
 
     if not items:
         theme.empty_state(
-            "🔥",
+            "◌",
             tr("trending.empty_title"),
             tr("trending.empty_desc"),
         )
@@ -388,9 +408,9 @@ def render() -> None:
         for s in status_keys
     }
     tab_labels = {
-        "new": f"🔥 {tr('trending.new_col')} ({counts['new']})",
-        "planned": f"📚 {tr('trending.plan_col')} ({counts['planned']})",
-        "archived": f"📦 {tr('trending.archived_col')} ({counts['archived']})",
+        "new": f"{tr('trending.new_col')} ({counts['new']})",
+        "planned": f"{tr('trending.plan_col')} ({counts['planned']})",
+        "archived": f"{tr('trending.archived_col')} ({counts['archived']})",
     }
     status_tab = st.radio(
         tr("trending.status_tab"),
