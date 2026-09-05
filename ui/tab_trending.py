@@ -315,23 +315,6 @@ def _archive_to_notion(repo: TrendingRepo) -> None:
         st.error(tr("trending.archive_state_fail"))
 
 
-def _render_column(title: str, icon: str, repos: list, board: dict, status: str) -> None:
-    """渲染一列看板：卡片按 2 列网格胶囊风格平铺。"""
-    st.markdown(f"#### {icon} {title}")
-    column_repos = [r for r in repos if board.get(r.name, {}).get("status", "new") == status]
-    st.caption(tr("trending.count").format(n=len(column_repos)))
-    if not column_repos:
-        st.caption(tr("trending.empty_column"))
-        return
-    for i in range(0, len(column_repos), 2):
-        grid_l, grid_r = st.columns(2)
-        with grid_l:
-            _render_card(column_repos[i], status)
-        if i + 1 < len(column_repos):
-            with grid_r:
-                _render_card(column_repos[i + 1], status)
-
-
 def render() -> None:
     """渲染中文热榜看板页面。"""
     # Master-Detail 样式（:has 精确命中热榜卡片容器，不影响其他 Tab）
