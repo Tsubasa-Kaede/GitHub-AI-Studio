@@ -20,18 +20,46 @@ from __future__ import annotations
 import logging
 import re
 import threading
+from datetime import date
+from pathlib import Path
 from typing import Optional, Tuple
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 
-from config import settings
+from config import PROJECT_ROOT, settings
 
 logger = logging.getLogger(__name__)
+
+# 每日推送防重标记：托盘/桌面壳/任务计划程序是多个独立进程，
+# 各自都可能有调度器在跑，用「当日已推送」标记避免同一台机器重复推送。
+PUSH_MARKER_FILE: Path = PROJECT_ROOT / "data" / ".last_daily_push"
+
+
+def already_pushed_today(marker_file: Optional[Path] = None) -> bool:
+    """今天是否已经成功执行过每日推送。"""
+    path = marker_file or PUSH_MARKER_FILE
+    try:
+        return path.read_text(encoding="utf-8").strip() == date.today().isoformat()
+    except OSError:
+        return False
+
+
+def _mark_pushed_today(marker_file: Optional[Path] = None) -> None:
+    """写入当日推送标记（失败只记日志，不阻断流程）。"""
+    path = marker_file or PUSH_MARKER_FILE
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(date.today().isoformat(), encoding="utf-8")
+    except OSError as exc:
+        logger.warning("写入每日推送标记失败：%s", exc)
 
 
 def _run_daily_push_job() -> None:
     """定时任务体：按技术偏好抓取热榜 → 双语 AI 日报 → 多通道推送 → Notion 归档。"""
+    if already_pushed_today():
+        logger.info("今日推送已完成（其他进程已执行），跳过本次重复触发。")
+        return
     logger.info("⏰ 触发每日自动推送任务...")
     try:
         from core import app_config
@@ -60,6 +88,9 @@ def _run_daily_push_job() -> None:
         if archiver.configured:
             urls = archiver.archive_many(result.items)
             logger.info("每日推送：Notion 归档 %d 条", len(urls))
+
+        # 抓取与推送流程走完才打标记；抓取失败当天由其他进程/下次触发兜底
+        _mark_pushed_today()
     except Exception as exc:  # noqa: BLE001 —— 任务异常只记日志，不影响调度器
         logger.exception("每日推送任务异常：%s", exc)
 

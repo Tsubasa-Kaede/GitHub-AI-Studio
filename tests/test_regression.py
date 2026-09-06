@@ -310,6 +310,30 @@ class TruncateTextTest(unittest.TestCase):
         self.assertTrue(result.endswith("…"))
 
 
+@unittest.skipUnless(FULL_DEPS_AVAILABLE, "需要 GitPython / PyGithub / python-dotenv（项目完整环境）")
+class DailyPushDedupTest(unittest.TestCase):
+    """Critical：托盘/桌面壳/任务计划多进程并发触发每日推送会重复发送。"""
+
+    def test_dedup_roundtrip(self) -> None:
+        import tempfile
+
+        from core import scheduler
+
+        with tempfile.TemporaryDirectory() as tmp:
+            marker = Path(tmp) / ".last_daily_push"
+            self.assertFalse(scheduler.already_pushed_today(marker))
+            scheduler._mark_pushed_today(marker)
+            self.assertTrue(scheduler.already_pushed_today(marker))
+            # 第二天自动失效：模拟 marker 内容为昨日
+            marker.write_text("2000-01-01", encoding="utf-8")
+            self.assertFalse(scheduler.already_pushed_today(marker))
+
+    def test_missing_marker_file_is_not_pushed(self) -> None:
+        from core import scheduler
+
+        self.assertFalse(scheduler.already_pushed_today(Path("Z:/nonexistent/marker")))
+
+
 class EnvFileGuardTest(unittest.TestCase):
     """Required：提交前拦截未忽略的环境变量文件（纯命名过滤逻辑）。"""
 
