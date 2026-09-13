@@ -8,6 +8,11 @@
   <img src="docs/screenshots/01-hosting.png" alt="GitHub-AI-Studio 主控台" width="860">
 </p>
 
+<p align="center">
+  <img src="docs/screenshots/demo-trending.gif" alt="热榜看板交互演示：存入待学 → 计划学习 → 移回新榜" width="860">
+</p>
+<p align="center"><sub>▲ 热榜看板交互演示：存入待学 → 计划学习 → 移回新榜</sub></p>
+
 - 🖥️ **独立桌面窗口**：PyWebView 内嵌 Streamlit（深色主题、7 大功能 Tab），与网页版渲染完全一致
 - 🏗️ **Clean Architecture**：UI / Services / Core / Models 严格分层，桌面、托盘、CLI 共用同一套流水线
 - 🤖 **AI 结构化输出**：Commit / README(i18n) / CHANGELOG / 热榜翻译 / 日报全部走 OpenAI JSON 模式，无 Key 自动降级
