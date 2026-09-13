@@ -186,8 +186,8 @@ def _parse_stars(tag) -> int:
     if tag is None:
         return 0
     text = tag.get("aria-label") or tag.get("title") or tag.get_text(" ", strip=True) or ""
-    # 兼容 "1,234 stars" 与 "12.3k stars" 两种格式
-    match = re.search(r"([\d.,]+k?)\s*(star|⭐)", text, re.I)
+    # 兼容 "1,234 stars"、"12.3k stars" 与 "1.2m stars" 三种格式
+    match = re.search(r"([\d.,]+[km]?)\s*(star|⭐)", text, re.I)
     return _to_int(match.group(1)) if match else 0
 
 

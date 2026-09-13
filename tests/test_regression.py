@@ -334,6 +334,76 @@ class DailyPushDedupTest(unittest.TestCase):
         self.assertFalse(scheduler.already_pushed_today(Path("Z:/nonexistent/marker")))
 
 
+@unittest.skipUnless(FULL_DEPS_AVAILABLE, "需要 GitPython / PyGithub / python-dotenv（项目完整环境）")
+class TrendingPageParseTest(unittest.TestCase):
+    """Required：Trending 页面解析的结构断言（GitHub 改版时会静默降级，用例尽早暴露）。"""
+
+    TRENDING_HTML = """
+    <html><body>
+    <article class="Box-row">
+      <h2><a href="/owner1/repo-one">owner1/repo-one</a></h2>
+      <p>  A   great  project </p>
+      <span itemprop="programmingLanguage">Python</span>
+      <a href="/owner1/repo-one/stargazers" aria-label="1,234 stars">1,234</a>
+      <a href="/owner1/repo-one/forks">12</a>
+      <a href="/owner1/repo-one/stargazers" aria-label="56 stars today">56 stars today</a>
+    </article>
+    <article class="Box-row">
+      <h2><a href="/owner2/repo-two?foo=1">repo-two</a></h2>
+      <span itemprop="programmingLanguage">Rust</span>
+      <a href="/owner2/repo-two/stargazers" aria-label="12.3k stars">12.3k</a>
+      <a href="/owner2/repo-two/stargazers" aria-label="210 stars today">210 stars</a>
+    </article>
+    </body></html>
+    """
+
+    def _fetch(self):
+        from unittest import mock
+
+        from services import trending_service
+
+        fake_resp = mock.Mock()
+        fake_resp.text = self.TRENDING_HTML
+        fake_resp.raise_for_status = mock.Mock()
+        with mock.patch.object(
+            trending_service, "_get_with_proxy_fallback", return_value=fake_resp
+        ):
+            return trending_service._fetch_trending_page("daily", limit=25, timeout=5)
+
+    def test_parses_repo_fields(self) -> None:
+        items = self._fetch()
+        self.assertEqual(len(items), 2)
+        first = items[0]
+        self.assertEqual(first.name, "owner1/repo-one")
+        self.assertEqual(first.url, "https://github.com/owner1/repo-one")
+        self.assertEqual(first.description, "A great project")
+        self.assertEqual(first.language, "Python")
+        self.assertEqual(first.stars_total, 1234)
+        self.assertEqual(first.stars_today, 56)
+
+    def test_strips_query_and_parses_k_suffix(self) -> None:
+        items = self._fetch()
+        second = items[1]
+        self.assertEqual(second.name, "owner2/repo-two")
+        self.assertEqual(second.stars_total, 12300)
+        self.assertEqual(second.stars_today, 210)
+
+    def test_parse_stars_formats(self) -> None:
+        from services.trending_service import _parse_stars
+
+        class Tag:
+            def __init__(self, label):
+                self._label = label
+
+            def get(self, _key):
+                return self._label
+
+        self.assertEqual(_parse_stars(Tag("9,999 stars")), 9999)
+        self.assertEqual(_parse_stars(Tag("1.2m stars")), 1_200_000)
+        self.assertEqual(_parse_stars(Tag("no numbers here")), 0)
+        self.assertEqual(_parse_stars(None), 0)
+
+
 class EnvFileGuardTest(unittest.TestCase):
     """Required：提交前拦截未忽略的环境变量文件（纯命名过滤逻辑）。"""
 
