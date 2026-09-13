@@ -1,6 +1,12 @@
 # GitHub-AI-Studio 🚀
 
+[![CI](https://github.com/Tsubasa-Kaede/GitHub-AI-Studio/actions/workflows/ci.yml/badge.svg)](https://github.com/Tsubasa-Kaede/GitHub-AI-Studio/actions/workflows/ci.yml)
+
 独立桌面窗口界面的本地 GitHub 智能化管理控制台与后台助手。
+
+<p align="center">
+  <img src="docs/screenshots/01-hosting.png" alt="GitHub-AI-Studio 主控台" width="860">
+</p>
 
 - 🖥️ **独立桌面窗口**：PyWebView 内嵌 Streamlit（深色主题、7 大功能 Tab），与网页版渲染完全一致
 - 🏗️ **Clean Architecture**：UI / Services / Core / Models 严格分层，桌面、托盘、CLI 共用同一套流水线
@@ -8,6 +14,19 @@
 - 🔥 **中文热榜**：AI 匹配度评分 + 技术标签 + 防直译翻译 → 两阶段操作（先抓取翻译，再推送/归档）→ Ntfy 手机推送 → Notion 归档
 - 🛡️ **安全引擎**：硬编码密钥扫描 + OSV 依赖漏洞扫描
 - 🖥️ **托盘常驻**：pystray + schedule，每日 09:00 自动推送，一键唤起桌面控制台
+
+## 📸 界面预览
+
+| | |
+| --- | --- |
+| **一键托管** — 本地目录 → AI 多语言 README → 建仓推送 | **AI 智能 Commit** — 密钥/依赖漏洞扫描 + Conventional Commits |
+| <img src="docs/screenshots/01-hosting.png" width="440"> | <img src="docs/screenshots/02-commit.png" width="440"> |
+| **中文热榜** — AI 技能雷达 + 30s 简报 + 对话式过滤 | **热榜看板** — Master-Detail + 深度研读五板块 |
+| <img src="docs/screenshots/03-trending-top.png" width="440"> | <img src="docs/screenshots/04-trending-board.png" width="440"> |
+| **自动发版** — Git 历史 → AI CHANGELOG → 一键 Release | **Star 语义搜索** — 自然语言检索你的 Star 仓库 |
+| <img src="docs/screenshots/05-release.png" width="440"> | <img src="docs/screenshots/06-star.png" width="440"> |
+| **工作日报** — 提交记录 → 结构化 Markdown 日报/周报 | **极简设置** — 一键连通测试 + 按场景模型覆盖 |
+| <img src="docs/screenshots/07-worklog.png" width="440"> | <img src="docs/screenshots/08-settings.png" width="440"> |
 
 ## 📁 目录结构
 
