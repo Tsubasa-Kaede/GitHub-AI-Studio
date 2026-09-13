@@ -22,16 +22,23 @@
 
 ## 📸 界面预览
 
+| **🔥 中文热榜看板** — 技能雷达 + 30s 简报 + 深度研读 | **📝 AI 智能 Commit** — 密钥/漏洞扫描 + Conventional Commits |
+| --- | --- |
+| <img src="docs/screenshots/04-trending-board.png" width="440"> | <img src="docs/screenshots/02-commit.png" width="440"> |
+| **⚙️ 极简设置** — 一键连通测试 + 按场景模型覆盖 | **📦 自动发版** — Git 历史 → AI CHANGELOG → Release |
+| <img src="docs/screenshots/08-settings.png" width="440"> | <img src="docs/screenshots/05-release.png" width="440"> |
+
+<details>
+<summary><b>更多界面：一键托管 / 热榜雷达 / Star 搜索 / 工作日报（点击展开）</b></summary>
+
 | | |
 | --- | --- |
-| **一键托管** — 本地目录 → AI 多语言 README → 建仓推送 | **AI 智能 Commit** — 密钥/依赖漏洞扫描 + Conventional Commits |
-| <img src="docs/screenshots/01-hosting.png" width="440"> | <img src="docs/screenshots/02-commit.png" width="440"> |
-| **中文热榜** — AI 技能雷达 + 30s 简报 + 对话式过滤 | **热榜看板** — Master-Detail + 深度研读五板块 |
-| <img src="docs/screenshots/03-trending-top.png" width="440"> | <img src="docs/screenshots/04-trending-board.png" width="440"> |
-| **自动发版** — Git 历史 → AI CHANGELOG → 一键 Release | **Star 语义搜索** — 自然语言检索你的 Star 仓库 |
-| <img src="docs/screenshots/05-release.png" width="440"> | <img src="docs/screenshots/06-star.png" width="440"> |
-| **工作日报** — 提交记录 → 结构化 Markdown 日报/周报 | **极简设置** — 一键连通测试 + 按场景模型覆盖 |
-| <img src="docs/screenshots/07-worklog.png" width="440"> | <img src="docs/screenshots/08-settings.png" width="440"> |
+| **一键托管** — 本地目录 → AI 多语言 README → 建仓推送 | **中文热榜** — AI 技能雷达 + 30s 简报 + 对话式过滤 |
+| <img src="docs/screenshots/01-hosting.png" width="440"> | <img src="docs/screenshots/03-trending-top.png" width="440"> |
+| **Star 语义搜索** — 自然语言检索你的 Star 仓库 | **工作日报** — 提交记录 → 结构化 Markdown 日报/周报 |
+| <img src="docs/screenshots/06-star.png" width="440"> | <img src="docs/screenshots/07-worklog.png" width="440"> |
+
+</details>
 
 ## 📁 目录结构
 
