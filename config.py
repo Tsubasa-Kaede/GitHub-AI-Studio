@@ -195,9 +195,24 @@ def _get_gh_token_from_hosts_yml() -> Optional[str]:
 
 
 @lru_cache(maxsize=1)
+def _resolve_github_credentials() -> Tuple[Optional[str], str]:
+    """缓存 gh 凭证解析（进程内一次），避免每次加载配置都起 gh 子进程。
+
+    若会话中途执行 gh auth login 更换凭证，重启应用后生效。
+    """
+    cli_token = _get_gh_token_from_cli()
+    if cli_token:
+        return cli_token, "gh-cli"
+    hosts_token = _get_gh_token_from_hosts_yml()
+    if hosts_token:
+        return hosts_token, "gh-hosts"
+    return None, "none"
+
+
+@lru_cache(maxsize=1)
 def get_gh_token() -> Optional[str]:
     """按优先级获取 gh CLI 凭证：命令优先，hosts.yml 兜底。"""
-    return _get_gh_token_from_cli() or _get_gh_token_from_hosts_yml()
+    return _resolve_github_credentials()[0]
 
 
 # ---------------------------------------------------------------------------
@@ -280,13 +295,9 @@ def load_settings() -> Settings:
     token = _env("GITHUB_TOKEN")
     source = "env" if token else "none"
     if not token:
-        cli_token = _get_gh_token_from_cli()
-        if cli_token:
-            token, source = cli_token, "gh-cli"
-    if not token:
-        hosts_token = _get_gh_token_from_hosts_yml()
-        if hosts_token:
-            token, source = hosts_token, "gh-hosts"
+        cached_token, cached_source = _resolve_github_credentials()
+        if cached_token:
+            token, source = cached_token, cached_source
 
     return Settings(
         github_token=token,
