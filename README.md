@@ -73,6 +73,12 @@ GitHub-AI-Studio/
 └── requirements.txt
 ```
 
+## 下载安装（Windows 免安装）
+
+1. 前往 [Releases](https://github.com/Tsubasa-Kaede/GitHub-AI-Studio/releases) 下载最新版 `GitHub-AI-Studio.exe`
+2. 双击即开，无需安装 Python 与任何依赖（单文件版首次启动需解压，约 10-30 秒）
+3. 可选：把写好配置的 `.env` 放在 exe 同目录直接沿用；缺失时会自动生成模板，稍后在「设置」页填写即可
+
 ## 快速开始
 
 ```bash

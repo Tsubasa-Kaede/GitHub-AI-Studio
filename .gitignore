@@ -16,3 +16,5 @@ build/
 *.swp
 .DS_Store
 Thumbs.db
+dist-release/
+build-release/
