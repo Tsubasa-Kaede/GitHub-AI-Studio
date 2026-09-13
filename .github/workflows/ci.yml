@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-# GitHub-AI-Studio 持续集成：静态检查 + 单元测试（Python 3.12 / 3.13 矩阵）
-# 推送到 GitHub 后自动生效；本地等价命令：
+# GitHub-AI-Studio 持续集成：静态检查 + 单元测试（Ubuntu/Windows × Python 3.12/3.13）
+# 应用以 Windows 为主要运行环境，故矩阵包含 windows-latest。
+# 本地等价命令：
 #   python -m ruff check --select "E,F,W,B" --ignore "E501,F401,E402,B009" services/ core/ ui/ tests/ app.py cli.py config.py models.py desktop_app.py tray.py build_exe.py
 #   python -m unittest discover -s tests -t . -v
 name: CI
@@ -12,10 +13,11 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
+        os: [ubuntu-latest, windows-latest]
         python-version: ["3.12", "3.13"]
     steps:
       - uses: actions/checkout@v4
