@@ -40,9 +40,9 @@ from services.trending_service import run_daily_trending_pipeline  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
-ACTION_FETCH = "🔥 立刻抓取并推送"
-ACTION_OPEN = "🖥️ 打开控制台"
-ACTION_EXIT = "❌ 退出后台服务"
+ACTION_FETCH = "立刻抓取并推送"
+ACTION_OPEN = "打开控制台"
+ACTION_EXIT = "退出后台服务"
 
 # ---------------------------------------------------------------------------
 # 图标（Pillow 程序化绘制）
@@ -88,16 +88,16 @@ def run_trending_job() -> None:
                 lines = [f"{r.name}（{r.stars_total:,}⭐）" for r in result.items]
                 sent = result.pushed_channels.get("sent", 0) if result.pushed_channels else 0
                 notify(
-                    "🔥 GitHub 热榜已推送",
-                    "\n".join(lines[:3]) + f"\n📱 Ntfy 推送 {sent}/{len(result.items)} 条",
+                    "GitHub 热榜已推送",
+                    "\n".join(lines[:3]) + f"\nNtfy 推送 {sent}/{len(result.items)} 条",
                 )
                 logger.info("热榜完成：%d 条，推送 %s，Notion %s",
                             len(result.items), result.pushed_channels, result.notion_page_url)
             else:
-                notify("⚠️ 热榜推送失败", result.error)
+                notify("热榜推送失败", result.error)
         except Exception as exc:  # noqa: BLE001
             logger.exception("热榜任务异常")
-            notify("⚠️ 热榜任务异常", str(exc))
+            notify("热榜任务异常", str(exc))
 
     threading.Thread(target=_work, daemon=True).start()
 
@@ -135,7 +135,7 @@ def open_console() -> None:
             logger.info("已打开桌面控制台")
         except OSError as exc:
             logger.error("唤起桌面控制台失败：%s", exc)
-            notify("🖥️ 控制台启动失败", str(exc))
+            notify("控制台启动失败", str(exc))
 
     threading.Thread(target=_work, daemon=True).start()
 
