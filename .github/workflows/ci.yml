@@ -35,9 +35,7 @@ jobs:
           pip install ruff==0.16.6
 
       - name: 静态检查（ruff）
-        run: >
-          python -m ruff check --select "E,F,W,B" --ignore "E501,F401,E402,B009"
-          services/ core/ ui/ tests/ app.py cli.py config.py models.py desktop_app.py tray.py build_exe.py
+        run: python -m ruff check .
 
       - name: 单元测试（unittest）
         run: python -m unittest discover -s tests -t . -v

@@ -1,0 +1,22 @@
+# Ruff 项目级配置（CI 与本地统一使用 `ruff check .`）
+# noqa 注释（如 # noqa: BLE001 —— 兜底不让异常冒泡）是有意的意图文档，
+# 故 RUF100 关闭；SIM115/SIM113 为已评审的既有模式，保持关闭。
+target-version = "py312"
+line-length = 100
+
+[lint]
+select = ["E", "F", "W", "B", "SIM", "RUF"]
+ignore = [
+    "E501",  # 行长由 line-length 与中文文案共同决定，不强拆
+    "F401",  # 兼容命名空间导入（core/notifier/__init__ 等）
+    "E402",  # 打包入口 desktop_app/tray 的 sys.path 前置导入
+    "B009",  # getattr(sys, "_MEIPASS") 是 PyInstaller 惯用法
+    "SIM115", # desktop_app 常驻日志句柄需跟随进程生命周期
+    "SIM113", # 推送进度计数沿用既有写法
+    "RUF001", "RUF002", "RUF003", # 中文文案中的全角标点属正常用法
+    "RUF012", # 可变类属性默认值（调度器单例等）
+    "RUF100", # noqa 指令作为意图文档保留
+]
+
+[lint.per-file-ignores]
+"archive/**" = ["E", "F", "W", "B", "SIM", "RUF"]  # 归档旧代码不检查
