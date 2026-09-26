@@ -25,11 +25,11 @@ from core.push_engine import (
 
 __all__ = [
     "BaseNotifier",
-    "NTFYNotifier",
-    "FeishuCardNotifier",
     "DingTalkNotifier",
-    "WeChatWorkNotifier",
     "EmailNotifier",
+    "FeishuCardNotifier",
+    "NTFYNotifier",
     "NotifierManager",
+    "WeChatWorkNotifier",
     "build_trending_digest",
 ]

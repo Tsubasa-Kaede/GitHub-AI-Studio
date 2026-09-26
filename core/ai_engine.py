@@ -234,7 +234,7 @@ class AIEngine:
             "subject 用祈使句、≤72 字符；复杂变更可附简短 body。只输出提交信息本身。"
         )
         user = f"""根据以下 Diff 生成提交信息。
-{hint and f"补充要求：{hint}" or ""}
+{(hint and f"补充要求：{hint}") or ""}
 【统计】{diff_stat[:2000] or "(无)"}
 【Diff】{diff_text[:MAX_PROMPT_CHARS]}
 """
@@ -745,7 +745,7 @@ Top N：{top_n}
             "你是资深代码审查专家。用中文 Markdown 输出审查报告，包含：总体评价、潜在 Bug、"
             "安全问题、性能问题、可读性、改进建议（按优先级）、综合评分。每个问题给出文件/行号/原因/建议。"
         )
-        user = f"""{repo_context and f"上下文：{repo_context[:1500]}" or ""}
+        user = f"""{(repo_context and f"上下文：{repo_context[:1500]}") or ""}
 【Diff】
 {diff_text[:MAX_PROMPT_CHARS]}
 """
