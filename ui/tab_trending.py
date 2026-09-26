@@ -175,7 +175,7 @@ def _render_master_list(repos: list) -> None:
 def _badges_html(repo: TrendingRepo) -> str:
     """胶囊 Badge：语言 + 技术标签（GitHub Dark 配色）。"""
     # 组合语言与标签并去重（保留原始顺序），过滤空值
-    raw_tags = [repo.language] + list(repo.tags or [])
+    raw_tags = [repo.language, *list(repo.tags or [])]
     clean_tags = list(dict.fromkeys(t for t in raw_tags if t and str(t).strip()))[:4]
     escaped = [html.escape(str(t)) for t in clean_tags]
     return "".join(

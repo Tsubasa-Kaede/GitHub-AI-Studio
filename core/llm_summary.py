@@ -155,7 +155,7 @@ def build_repo_card(repo: TrendingRepo) -> str:
         or split_features(repo)
     )
     lang = repo.language or "Multi-language"
-    tags = " · ".join([lang] + [str(t) for t in (repo.tags or []) if str(t).strip()][:3])
+    tags = " · ".join([lang, *[str(t) for t in (repo.tags or []) if str(t).strip()][:3]])
     return "\n".join([
         header,
         f"🎯 核心定位：{position[:120]}",

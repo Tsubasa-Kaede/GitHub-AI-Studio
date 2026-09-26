@@ -11,6 +11,7 @@ Notion 归档引擎
 
 from __future__ import annotations
 
+import contextlib
 from datetime import date
 import logging
 from typing import Dict, Optional
@@ -98,10 +99,8 @@ class NotionArchiver:
             return data.get("url")
         except requests.RequestException as exc:
             detail = ""
-            try:
+            with contextlib.suppress(Exception):
                 detail = resp.json().get("message", "")
-            except Exception:  # noqa: BLE001
-                pass
             raise NotionEngineError(f"Notion 归档失败：{exc} {detail}".strip()) from exc
 
     def archive_many(self, repos) -> Dict[str, str]:

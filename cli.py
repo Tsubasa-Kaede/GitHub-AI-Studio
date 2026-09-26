@@ -135,7 +135,7 @@ def _schedule_cron(time_str: str) -> int:
     kept = [ln for ln in old_lines if "GitHub-AI-Studio" not in ln and "cli.py --daily-push" not in ln]
     result = subprocess.run(
         ["crontab", "-"],
-        input="\n".join(kept + [f"# GitHub-AI-Studio 每日热榜（{time_str}）", line]) + "\n",
+        input="\n".join([*kept, f"# GitHub-AI-Studio 每日热榜（{time_str}）", line]) + "\n",
         text=True, capture_output=True,
     )
     if result.returncode != 0:

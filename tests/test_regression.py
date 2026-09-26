@@ -224,9 +224,9 @@ class AIModelRoutingTest(unittest.TestCase):
         client = mock.Mock()
         client.chat.completions.create.side_effect = self._openai_error(AuthenticationError, 401)
         with mock.patch.object(settings, "openai_fallback_model", "backup-model"), \
-                mock.patch.object(engine, "_get_client", return_value=client):
-            with self.assertRaises(AIEngineError):
-                engine._chat("sys", "usr")
+                mock.patch.object(engine, "_get_client", return_value=client), \
+                self.assertRaises(AIEngineError):
+            engine._chat("sys", "usr")
         self.assertEqual(client.chat.completions.create.call_count, 1)
 
     def test_raises_after_chain_exhausted(self) -> None:
@@ -241,9 +241,9 @@ class AIModelRoutingTest(unittest.TestCase):
         client = mock.Mock()
         client.chat.completions.create.side_effect = self._openai_error(RateLimitError, 429)
         with mock.patch.object(settings, "openai_fallback_model", "backup-a, backup-b"), \
-                mock.patch.object(engine, "_get_client", return_value=client):
-            with self.assertRaises(AIEngineError):
-                engine._chat("sys", "usr")
+                mock.patch.object(engine, "_get_client", return_value=client), \
+                self.assertRaises(AIEngineError):
+            engine._chat("sys", "usr")
         self.assertEqual(client.chat.completions.create.call_count, 3)
 
 
@@ -262,7 +262,7 @@ class I18nParityTest(unittest.TestCase):
 
         ui_dir = PROJECT_ROOT / "ui"
         used = set()
-        for path in list(ui_dir.rglob("*.py")) + [PROJECT_ROOT / "app.py"]:
+        for path in [*ui_dir.rglob("*.py"), PROJECT_ROOT / "app.py"]:
             source = path.read_text(encoding="utf-8")
             used |= set(re.findall(r"tr\(\s*['\"]([\w.]+)['\"]", source))
         missing = sorted(k for k in used if k not in TRANSLATIONS["zh_CN"])
